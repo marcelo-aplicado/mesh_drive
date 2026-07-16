@@ -334,7 +334,7 @@ document.getElementById('detected').innerText='Sistema detectado: '+os;if(id){do
         try {
             if (document.getElementById('plugin_meshDriveLauncher')) return;
 
-            var buttonGroup = '<span id="plugin_meshDriveLauncher" style="display:inline-flex;align-items:center;gap:6px;margin-left:14px;vertical-align:middle;font-size:13px;font-weight:400;">' +
+            var buttonGroup = '<span id="plugin_meshDriveLauncher" style="display:inline-flex;align-items:center;gap:6px;margin-left:auto;vertical-align:middle;font-size:13px;font-weight:400;white-space:nowrap;">' +
                 '<span style="font-size:13px;font-weight:600;color:#24292f;">&#128193; Mesh Drive</span>' +
                 '<button onclick="pluginHandler.meshdrive.downloadDetectedLink();" style="padding:5px 9px;border-radius:6px;border:1px solid #1f6feb;background:#1f6feb;color:white;cursor:pointer;font-size:12px;line-height:16px;">Baixar link</button>' +
                 '<button onclick="pluginHandler.meshdrive.copyDetectedAddress();" style="padding:5px 9px;border-radius:6px;border:1px solid #57606a;background:#f6f8fa;color:#24292f;cursor:pointer;font-size:12px;line-height:16px;">Copiar endereco</button>' +
@@ -351,8 +351,9 @@ document.getElementById('detected').innerText='Sistema detectado: '+os;if(id){do
             if (title) {
                 title.style.display = 'flex';
                 title.style.alignItems = 'center';
-                title.style.flexWrap = 'wrap';
+                title.style.flexWrap = 'nowrap';
                 title.style.gap = '8px';
+                title.style.width = '100%';
                 title.insertAdjacentHTML('beforeend', buttonGroup);
                 return;
             }

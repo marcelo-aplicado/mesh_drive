@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.5
+- Alinhados os botões rápidos do Mesh Drive à direita da linha do título `Meus Arquivos` / `My Files`.
+- O título permanece à esquerda e o grupo de ações fica encostado à direita usando um contêiner flex com largura total.
+- Mantido fallback compacto caso o título não seja encontrado.
+
 ## 0.5.4
 - Moved the quick action buttons from the separate Mesh Drive card to the same line as the My Files / Meus Arquivos title.
 - The inline title buttons are: Download link, Copy address, and All options.

@@ -83,3 +83,8 @@ This version removes `getDetectedInfo()` from the render path. The card in My Fi
 ## 0.5.4
 
 The Mesh Drive quick buttons are now inserted beside the My Files / Meus Arquivos title instead of being rendered as a separate large card above the file list.
+
+
+## 0.5.5
+
+Os botões rápidos do Mesh Drive agora são alinhados à direita na mesma linha do título `Meus Arquivos` / `My Files`.
