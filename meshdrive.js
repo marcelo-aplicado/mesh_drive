@@ -303,42 +303,43 @@ document.getElementById('detected').innerText='Sistema detectado: '+os;if(id){do
 
     /* Browser-side helpers exported to MeshCentral Web UI */
     obj.openLauncher = function() { window.open('/meshdrive/launcher', '_blank'); };
-    obj.getDetectedInfo = function() {
+    obj.downloadDetectedLink = function() {
         var ua = navigator.userAgent || '';
-        if (/Windows/i.test(ua)) {
-            return { os: 'Windows', address: String.raw`\\mesh.aplicado.com.br@SSL\drive`, link: '/meshdrive/scripts/windows-link.url', label: 'Baixar link do Windows' };
-        }
-        if (/Macintosh|Mac OS/i.test(ua)) {
-            return { os: 'macOS', address: 'davs://mesh.aplicado.com.br/drive/', link: '/meshdrive/scripts/macos-link.webloc', label: 'Baixar link do macOS' };
-        }
-        if (/Linux/i.test(ua)) {
-            return { os: 'Linux', address: 'davs://mesh.aplicado.com.br/drive/', link: '/meshdrive/scripts/linux-link.desktop', label: 'Baixar link do Linux' };
-        }
-        return { os: 'Outro sistema', address: 'https://mesh.aplicado.com.br/drive/', link: '/meshdrive/launcher', label: 'Abrir opções' };
+        if (/Windows/i.test(ua)) { window.location.href = '/meshdrive/scripts/windows-link.url'; return; }
+        if (/Macintosh|Mac OS/i.test(ua)) { window.location.href = '/meshdrive/scripts/macos-link.webloc'; return; }
+        if (/Linux/i.test(ua)) { window.location.href = '/meshdrive/scripts/linux-link.desktop'; return; }
+        window.location.href = '/meshdrive/launcher';
     };
     obj.copyDetectedAddress = function() {
-        var info = pluginHandler.meshdrive.getDetectedInfo();
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(info.address).then(function() { alert('Endereço copiado (' + info.os + '): ' + info.address); }, function() { prompt('Copie o endereço abaixo:', info.address); });
-        } else {
-            prompt('Copie o endereço abaixo:', info.address);
+        var ua = navigator.userAgent || '';
+        var address = 'https://mesh.aplicado.com.br/drive/';
+        if (/Windows/i.test(ua)) {
+            address = String.raw`\\mesh.aplicado.com.br@SSL\drive`;
+        } else if (/Macintosh|Mac OS/i.test(ua)) {
+            address = 'davs://mesh.aplicado.com.br/drive/';
+        } else if (/Linux/i.test(ua)) {
+            address = 'davs://mesh.aplicado.com.br/drive/';
         }
-    };
-    obj.downloadDetectedLink = function() {
-        var info = pluginHandler.meshdrive.getDetectedInfo();
-        window.location.href = info.link;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(address).then(function() {
+                alert('Endereco copiado:\n\n' + address);
+            }, function() {
+                prompt('Copie o endereco abaixo:', address);
+            });
+        } else {
+            prompt('Copie o endereco abaixo:', address);
+        }
     };
     obj.injectMeshDriveLauncher = function() {
         try {
             if (document.getElementById('plugin_meshDriveLauncher')) return;
-            var info = pluginHandler.meshdrive.getDetectedInfo();
             var html = '<div id="plugin_meshDriveLauncher" style="margin:10px 0;padding:10px;border:1px solid #d0d7de;border-radius:8px;background:#f6f8fa;max-width:520px;">' +
-                '<div style="font-weight:600;margin-bottom:4px;">📁 Mesh Drive</div>' +
-                '<div style="font-size:12px;margin-bottom:8px;color:#57606a;">Sistema detectado: <b>' + info.os + '</b>. Abra ou mapeie seus arquivos do My Files.</div>' +
+                '<div style="font-weight:600;margin-bottom:4px;">&#128193; Mesh Drive</div>' +
+                '<div style="font-size:12px;margin-bottom:8px;color:#57606a;">Abra ou mapeie seus arquivos do My Files.</div>' +
                 '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
                 '<button onclick="pluginHandler.meshdrive.downloadDetectedLink();" style="padding:6px 10px;border-radius:6px;border:1px solid #1f6feb;background:#1f6feb;color:white;cursor:pointer;">Baixar link</button>' +
-                '<button onclick="pluginHandler.meshdrive.copyDetectedAddress();" style="padding:6px 10px;border-radius:6px;border:1px solid #57606a;background:#f6f8fa;color:#24292f;cursor:pointer;">Copiar endereço</button>' +
-                '<button onclick="pluginHandler.meshdrive.openLauncher();" style="padding:6px 10px;border-radius:6px;border:1px solid #16803c;background:#16803c;color:white;cursor:pointer;">Todas as opções</button>' +
+                '<button onclick="pluginHandler.meshdrive.copyDetectedAddress();" style="padding:6px 10px;border-radius:6px;border:1px solid #57606a;background:#f6f8fa;color:#24292f;cursor:pointer;">Copiar endereco</button>' +
+                '<button onclick="pluginHandler.meshdrive.openLauncher();" style="padding:6px 10px;border-radius:6px;border:1px solid #16803c;background:#16803c;color:white;cursor:pointer;">Todas as opcoes</button>' +
                 '</div>' +
                 '</div>';
             var targets = [];

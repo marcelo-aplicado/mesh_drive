@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.3
+- Removed `getDetectedInfo()` from the card rendering path.
+- Card rendering is now static and always shows three quick actions: Download link, Copy address, and All options.
+- OS detection now runs only when the user clicks Download link or Copy address.
+- This avoids JavaScript render failures on MeshCentral 1.2.1.
+
 ## 0.5.2
 - Card integrado ao My Files atualizado com três ações rápidas: baixar link, copiar endereço e abrir todas as opções.
 - A ação de baixar link detecta o sistema operacional e baixa `.url` no Windows, `.desktop` no Linux ou `.webloc` no macOS.

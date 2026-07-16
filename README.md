@@ -73,3 +73,8 @@ Windows: MeshDrive.url
 Linux: mesh-drive.desktop
 macOS: MeshDrive.webloc
 ```
+
+
+## 0.5.3
+
+This version removes `getDetectedInfo()` from the render path. The card in My Files is rendered statically and OS detection runs only when a button is clicked.
