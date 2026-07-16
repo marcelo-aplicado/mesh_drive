@@ -78,3 +78,8 @@ macOS: MeshDrive.webloc
 ## 0.5.3
 
 This version removes `getDetectedInfo()` from the render path. The card in My Files is rendered statically and OS detection runs only when a button is clicked.
+
+
+## 0.5.4
+
+The Mesh Drive quick buttons are now inserted beside the My Files / Meus Arquivos title instead of being rendered as a separate large card above the file list.

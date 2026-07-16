@@ -333,26 +333,46 @@ document.getElementById('detected').innerText='Sistema detectado: '+os;if(id){do
     obj.injectMeshDriveLauncher = function() {
         try {
             if (document.getElementById('plugin_meshDriveLauncher')) return;
-            var html = '<div id="plugin_meshDriveLauncher" style="margin:10px 0;padding:10px;border:1px solid #d0d7de;border-radius:8px;background:#f6f8fa;max-width:520px;">' +
-                '<div style="font-weight:600;margin-bottom:4px;">&#128193; Mesh Drive</div>' +
-                '<div style="font-size:12px;margin-bottom:8px;color:#57606a;">Abra ou mapeie seus arquivos do My Files.</div>' +
+
+            var buttonGroup = '<span id="plugin_meshDriveLauncher" style="display:inline-flex;align-items:center;gap:6px;margin-left:14px;vertical-align:middle;font-size:13px;font-weight:400;">' +
+                '<span style="font-size:13px;font-weight:600;color:#24292f;">&#128193; Mesh Drive</span>' +
+                '<button onclick="pluginHandler.meshdrive.downloadDetectedLink();" style="padding:5px 9px;border-radius:6px;border:1px solid #1f6feb;background:#1f6feb;color:white;cursor:pointer;font-size:12px;line-height:16px;">Baixar link</button>' +
+                '<button onclick="pluginHandler.meshdrive.copyDetectedAddress();" style="padding:5px 9px;border-radius:6px;border:1px solid #57606a;background:#f6f8fa;color:#24292f;cursor:pointer;font-size:12px;line-height:16px;">Copiar endereco</button>' +
+                '<button onclick="pluginHandler.meshdrive.openLauncher();" style="padding:5px 9px;border-radius:6px;border:1px solid #16803c;background:#16803c;color:white;cursor:pointer;font-size:12px;line-height:16px;">Todas as opcoes</button>' +
+                '</span>';
+
+            var title = null;
+            var headings = document.querySelectorAll('h1,h2,h3,div,span');
+            for (var i = 0; i < headings.length; i++) {
+                var text = (headings[i].innerText || headings[i].textContent || '').trim().toLowerCase();
+                if ((text === 'meus arquivos') || (text === 'my files')) { title = headings[i]; break; }
+            }
+
+            if (title) {
+                title.style.display = 'flex';
+                title.style.alignItems = 'center';
+                title.style.flexWrap = 'wrap';
+                title.style.gap = '8px';
+                title.insertAdjacentHTML('beforeend', buttonGroup);
+                return;
+            }
+
+            // Fallback: if the page title is not found, show a compact card near the file area.
+            var fallback = '<div id="plugin_meshDriveLauncher" style="margin:10px 0;padding:8px 10px;border:1px solid #d0d7de;border-radius:8px;background:#f6f8fa;max-width:520px;">' +
+                '<div style="font-weight:600;margin-bottom:6px;">&#128193; Mesh Drive</div>' +
                 '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
                 '<button onclick="pluginHandler.meshdrive.downloadDetectedLink();" style="padding:6px 10px;border-radius:6px;border:1px solid #1f6feb;background:#1f6feb;color:white;cursor:pointer;">Baixar link</button>' +
                 '<button onclick="pluginHandler.meshdrive.copyDetectedAddress();" style="padding:6px 10px;border-radius:6px;border:1px solid #57606a;background:#f6f8fa;color:#24292f;cursor:pointer;">Copiar endereco</button>' +
                 '<button onclick="pluginHandler.meshdrive.openLauncher();" style="padding:6px 10px;border-radius:6px;border:1px solid #16803c;background:#16803c;color:white;cursor:pointer;">Todas as opcoes</button>' +
-                '</div>' +
-                '</div>';
+                '</div></div>';
+
             var targets = [];
             var ids = ['p5', 'p13', 'p11', 'p2', 'p3'];
-            for (var i = 0; i < ids.length; i++) { var el = document.getElementById(ids[i]); if (el) targets.push(el); }
-            var all = document.querySelectorAll('div,section,td');
-            for (var j = 0; j < all.length && targets.length < 8; j++) {
-                var txt = (all[j].innerText || '').toLowerCase();
-                if ((txt.indexOf('my files') >= 0 || txt.indexOf('meus arquivos') >= 0 || txt.indexOf('arquivos') >= 0) && all[j].offsetParent != null) targets.push(all[j]);
-            }
-            if (targets.length > 0) { targets[0].insertAdjacentHTML('afterbegin', html); return; }
+            for (var j = 0; j < ids.length; j++) { var el = document.getElementById(ids[j]); if (el) targets.push(el); }
+            if (targets.length > 0) { targets[0].insertAdjacentHTML('afterbegin', fallback); return; }
+
             var account = document.querySelector('#p2AccountActions p.mL');
-            if (account) { account.insertAdjacentHTML('beforeend', '<span id="plugin_meshDriveLauncher" style="display:block"><a onclick="pluginHandler.meshdrive.openLauncher();">📁 Mesh Drive</a></span>'); }
+            if (account) { account.insertAdjacentHTML('beforeend', '<span id="plugin_meshDriveLauncher" style="display:block"><a onclick="pluginHandler.meshdrive.openLauncher();">&#128193; Mesh Drive</a></span>'); }
         } catch (e) { console.log('Mesh Drive launcher injection failed', e); }
     };
     obj.onWebUIStartupEnd = function() { setTimeout(pluginHandler.meshdrive.injectMeshDriveLauncher, 500); setTimeout(pluginHandler.meshdrive.injectMeshDriveLauncher, 2000); };

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.4
+- Moved the quick action buttons from the separate Mesh Drive card to the same line as the My Files / Meus Arquivos title.
+- The inline title buttons are: Download link, Copy address, and All options.
+- Kept OS detection only on button click, preserving the v0.5.3 render safety behavior.
+- Added a fallback compact card only if the My Files title cannot be found.
+
 ## 0.5.3
 - Removed `getDetectedInfo()` from the card rendering path.
 - Card rendering is now static and always shows three quick actions: Download link, Copy address, and All options.
