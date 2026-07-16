@@ -88,3 +88,8 @@ The Mesh Drive quick buttons are now inserted beside the My Files / Meus Arquivo
 ## 0.5.5
 
 Os botões rápidos do Mesh Drive agora são alinhados à direita na mesma linha do título `Meus Arquivos` / `My Files`.
+
+
+## 0.5.6
+
+Pacote recompilado para evitar ambiguidade/cache de versão. O `config.json` dentro do ZIP está como `0.5.6`.

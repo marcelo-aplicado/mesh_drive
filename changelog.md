@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.6
+- Rebuild package to avoid version/cache ambiguity after v0.5.5.
+- Keeps the v0.5.5 layout: Mesh Drive buttons aligned to the right of the My Files / Meus Arquivos title.
+- Confirmed `config.json` version is `0.5.6` inside the ZIP package.
+
 ## 0.5.5
 - Alinhados os botões rápidos do Mesh Drive à direita da linha do título `Meus Arquivos` / `My Files`.
 - O título permanece à esquerda e o grupo de ações fica encostado à direita usando um contêiner flex com largura total.
