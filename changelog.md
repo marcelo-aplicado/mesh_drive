@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1
+- Corrigido o botão de copiar caminho Windows, preservando corretamente as barras invertidas.
+- Adicionada função `jsLiteral()` para inserir caminhos em JavaScript com escape seguro.
+- Ajustados botões de copiar e comandos para retornar exatamente `\\mesh.aplicado.com.br@SSL\drive`.
+
 ## 0.5.0
 - Adicionada página de lançamento em `/meshdrive/launcher`.
 - Adicionados botões e instruções para abrir ou mapear o Mesh Drive no Windows, Linux e macOS.

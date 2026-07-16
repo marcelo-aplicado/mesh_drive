@@ -47,3 +47,12 @@ Resposta esperada:
 ```text
 HTTP/1.1 207 Multi-Status
 ```
+
+
+## Correção 0.5.1
+
+Corrige o botão de copiar caminho Windows. O caminho copiado deve ser exatamente:
+
+```text
+\\mesh.aplicado.com.br@SSL\drive
+```

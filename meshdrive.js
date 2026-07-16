@@ -176,13 +176,85 @@ module.exports.meshdrive = function (parent) {
         res.writeHead(200, { 'Content-Type': contentType || 'text/plain; charset=utf-8', 'Content-Disposition': 'attachment; filename="' + name + '"' });
         res.end(content);
     }
+    function jsLiteral(s) { return JSON.stringify(String(s || '')); }
     function launcherHtml() {
         var webdavUrl = cfg.publicUrl.replace(/\/$/, '/') ;
         var host = webdavUrl.replace(/^https:\/\//, '').replace(/\/drive\/?$/, '');
         var winUnc = '\\\\' + host + '@SSL\\drive';
         var winDavRoot = '\\\\' + host + '@SSL\\DavWWWRoot\\drive';
         var davsUrl = 'davs://' + host + '/drive/';
-        return '<!DOCTYPE html><html lang="pt-br"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mesh Drive</title><style>body{font-family:Segoe UI,Arial,sans-serif;background:#f4f7fb;margin:0;color:#1f2937}.wrap{max-width:1050px;margin:0 auto;padding:32px}.hero{background:#fff;border:1px solid #dbe3ef;border-radius:18px;padding:28px;box-shadow:0 10px 25px rgba(15,23,42,.08)}h1{margin:0 0 8px;font-size:32px}.muted{color:#667085}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:20px}.card{background:#fff;border:1px solid #dbe3ef;border-radius:16px;padding:20px}.card.reco{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12)}.badge{display:inline-block;background:#e0ecff;color:#1d4ed8;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}.btn{display:inline-block;background:#2563eb;color:#fff;text-decoration:none;border:0;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer}.btn.secondary{background:#eef2f7;color:#1f2937}.btn.green{background:#16803c}code,pre{background:#0f172a;color:#e5e7eb;border-radius:8px;padding:10px;display:block;white-space:pre-wrap;overflow:auto}.small{font-size:13px}.ok{color:#16803c;font-weight:600}</style></head><body><div class="wrap"><div class="hero"><span class="badge">Mesh Drive</span><h1>Abrir ou mapear seus arquivos</h1><p class="muted">O sistema detecta seu sistema operacional e mostra a melhor opção. Seus arquivos são acessados via WebDAV em <b>' + htmlEscape(webdavUrl) + '</b>.</p><p id="detected" class="ok">Detectando sistema...</p><div class="actions"><button class="btn" onclick="copyText(\'' + htmlEscape(webdavUrl) + '\')">Copiar URL WebDAV</button><button class="btn secondary" onclick="copyText(\'' + htmlEscape(winUnc) + '\')">Copiar caminho Windows</button></div></div><div class="cards"><div class="card" id="card-windows"><span class="badge">Windows</span><h2>Abrir no Explorer</h2><p class="small">Use o caminho WebDAV UNC. Se o navegador bloquear links file://, copie e cole no Explorer.</p><code>' + htmlEscape(winUnc) + '</code><div class="actions"><a class="btn" href="file:///' + encodeURI(winUnc.replace(/\\/g, '/')) + '">Tentar abrir</a><button class="btn secondary" onclick="copyText(\'' + htmlEscape(winUnc) + '\')">Copiar</button></div><h3>Mapear unidade</h3><code>net use M: ' + htmlEscape(winUnc) + ' /user:%USERNAME% * /persistent:yes</code><div class="actions"><a class="btn green" href="/meshdrive/scripts/windows-map.cmd">Baixar .CMD</a><button class="btn secondary" onclick="copyText(\'net use M: ' + htmlEscape(winUnc) + ' /user:%USERNAME% * /persistent:yes\')">Copiar comando</button></div><p class="small">Alternativa: <code>' + htmlEscape(winDavRoot) + '</code></p></div><div class="card" id="card-linux"><span class="badge">Linux</span><h2>Abrir no gerenciador de arquivos</h2><code>' + htmlEscape(davsUrl) + '</code><div class="actions"><a class="btn" href="' + htmlEscape(davsUrl) + '">Tentar abrir</a><button class="btn secondary" onclick="copyText(\'' + htmlEscape(davsUrl) + '\')">Copiar</button></div><h3>Montar com davfs2</h3><code>mkdir -p ~/MeshDrive\nsudo mount -t davfs ' + htmlEscape(webdavUrl) + ' ~/MeshDrive</code><div class="actions"><a class="btn green" href="/meshdrive/scripts/linux-map.sh">Baixar .SH</a></div></div><div class="card" id="card-macos"><span class="badge">macOS</span><h2>Abrir no Finder</h2><code>' + htmlEscape(davsUrl) + '</code><div class="actions"><a class="btn" href="' + htmlEscape(davsUrl) + '">Tentar abrir</a><button class="btn secondary" onclick="copyText(\'' + htmlEscape(davsUrl) + '\')">Copiar</button></div><h3>Montar via terminal</h3><code>mkdir -p ~/MeshDrive\nmount_webdav ' + htmlEscape(webdavUrl) + ' ~/MeshDrive</code><div class="actions"><a class="btn green" href="/meshdrive/scripts/macos-map.sh">Baixar .SH</a></div></div></div></div><script>function copyText(t){navigator.clipboard.writeText(t).then(function(){alert("Copiado: "+t);},function(){prompt("Copie o texto abaixo:",t);});}var ua=navigator.userAgent||"";var os="Sistema não identificado";var id="";if(/Windows/i.test(ua)){os="Windows";id="card-windows";}else if(/Macintosh|Mac OS/i.test(ua)){os="macOS";id="card-macos";}else if(/Linux/i.test(ua)){os="Linux";id="card-linux";}document.getElementById("detected").innerText="Sistema detectado: "+os;if(id){document.getElementById(id).classList.add("reco");}</script></body></html>';
+        var winMapCmd = 'net use M: ' + winUnc + ' /user:%USERNAME% * /persistent:yes';
+        var fileUrl = 'file:///' + winUnc.replace(/\\/g, '/');
+        return `<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mesh Drive</title>
+<style>
+body{font-family:Segoe UI,Arial,sans-serif;background:#f4f7fb;margin:0;color:#1f2937}.wrap{max-width:1050px;margin:0 auto;padding:32px}.hero{background:#fff;border:1px solid #dbe3ef;border-radius:18px;padding:28px;box-shadow:0 10px 25px rgba(15,23,42,.08)}h1{margin:0 0 8px;font-size:32px}.muted{color:#667085}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:20px}.card{background:#fff;border:1px solid #dbe3ef;border-radius:16px;padding:20px}.card.reco{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12)}.badge{display:inline-block;background:#e0ecff;color:#1d4ed8;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}.btn{display:inline-block;background:#2563eb;color:#fff;text-decoration:none;border:0;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer}.btn.secondary{background:#eef2f7;color:#1f2937}.btn.green{background:#16803c}code,pre{background:#0f172a;color:#e5e7eb;border-radius:8px;padding:10px;display:block;white-space:pre-wrap;overflow:auto}.small{font-size:13px}.ok{color:#16803c;font-weight:600}.warn{color:#b45309}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <span class="badge">Mesh Drive</span>
+    <h1>Abrir ou mapear seus arquivos</h1>
+    <p class="muted">O sistema detecta seu sistema operacional e mostra a melhor opção. Seus arquivos são acessados via WebDAV em <b>${htmlEscape(webdavUrl)}</b>.</p>
+    <p id="detected" class="ok">Detectando sistema...</p>
+    <div class="actions">
+      <button class="btn" onclick='copyText(${jsLiteral(webdavUrl)})'>Copiar URL WebDAV</button>
+      <button class="btn secondary" onclick='copyText(${jsLiteral(winUnc)})'>Copiar caminho Windows</button>
+    </div>
+  </div>
+  <div class="cards">
+    <div class="card" id="card-windows">
+      <span class="badge">Windows</span>
+      <h2>Abrir no Explorer</h2>
+      <p class="small">Caminho validado no Windows Explorer. Se o navegador bloquear a abertura direta, copie e cole o caminho abaixo na barra do Explorer.</p>
+      <code>${htmlEscape(winUnc)}</code>
+      <div class="actions">
+        <a class="btn" href="${htmlEscape(fileUrl)}">Tentar abrir</a>
+        <button class="btn secondary" onclick='copyText(${jsLiteral(winUnc)})'>Copiar caminho</button>
+      </div>
+      <h3>Mapear unidade</h3>
+      <code>${htmlEscape(winMapCmd)}</code>
+      <div class="actions">
+        <a class="btn green" href="/meshdrive/scripts/windows-map.cmd">Baixar .CMD</a>
+        <button class="btn secondary" onclick='copyText(${jsLiteral(winMapCmd)})'>Copiar comando</button>
+      </div>
+      <p class="small">Alternativa compatível:</p>
+      <code>${htmlEscape(winDavRoot)}</code>
+      <div class="actions"><button class="btn secondary" onclick='copyText(${jsLiteral(winDavRoot)})'>Copiar alternativa</button></div>
+    </div>
+    <div class="card" id="card-linux">
+      <span class="badge">Linux</span>
+      <h2>Abrir no gerenciador de arquivos</h2>
+      <code>${htmlEscape(davsUrl)}</code>
+      <div class="actions"><a class="btn" href="${htmlEscape(davsUrl)}">Tentar abrir</a><button class="btn secondary" onclick='copyText(${jsLiteral(davsUrl)})'>Copiar</button></div>
+      <h3>Montar com davfs2</h3>
+      <code>mkdir -p ~/MeshDrive\nsudo mount -t davfs ${htmlEscape(webdavUrl)} ~/MeshDrive</code>
+      <div class="actions"><a class="btn green" href="/meshdrive/scripts/linux-map.sh">Baixar .SH</a></div>
+    </div>
+    <div class="card" id="card-macos">
+      <span class="badge">macOS</span>
+      <h2>Abrir no Finder</h2>
+      <code>${htmlEscape(davsUrl)}</code>
+      <div class="actions"><a class="btn" href="${htmlEscape(davsUrl)}">Tentar abrir</a><button class="btn secondary" onclick='copyText(${jsLiteral(davsUrl)})'>Copiar</button></div>
+      <h3>Montar via terminal</h3>
+      <code>mkdir -p ~/MeshDrive\nmount_webdav ${htmlEscape(webdavUrl)} ~/MeshDrive</code>
+      <div class="actions"><a class="btn green" href="/meshdrive/scripts/macos-map.sh">Baixar .SH</a></div>
+    </div>
+  </div>
+</div>
+<script>
+function copyText(t){navigator.clipboard.writeText(t).then(function(){alert('Copiado: '+t);},function(){prompt('Copie o texto abaixo:',t);});}
+var ua=navigator.userAgent||'';var os='Sistema não identificado';var id='';
+if(/Windows/i.test(ua)){os='Windows';id='card-windows';}else if(/Macintosh|Mac OS/i.test(ua)){os='macOS';id='card-macos';}else if(/Linux/i.test(ua)){os='Linux';id='card-linux';}
+document.getElementById('detected').innerText='Sistema detectado: '+os;if(id){document.getElementById(id).classList.add('reco');}
+</script>
+</body>
+</html>`;
     }
     function launcherHandler(req, res) {
         var url = req.url || '';

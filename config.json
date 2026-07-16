@@ -1,7 +1,7 @@
 {
   "name": "Mesh Drive",
   "shortName": "meshdrive",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "author": "Marcelo Henrique da Silva / Microsoft Copilot",
   "description": "Expose MeshCentral My Files as Mesh Drive using WebDAV and provide a launcher page with OS-specific open/map options.",
   "hasAdminPanel": false,
