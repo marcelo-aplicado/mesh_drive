@@ -1,10 +1,13 @@
 # Changelog
 
+## 0.4.2
+- Removida a dependência direta de `pass.js` para validação de senha.
+- A validação agora usa `crypto.pbkdf2` diretamente com SHA384 e 12000 iterações.
+- O tamanho do hash é calculado a partir do hash armazenado do usuário, evitando incompatibilidade de assinatura do `pass.hash`.
+- Corrige o crash `TypeError: fn is not a function` nas linhas 31 ou 43 do `pass.js`.
+
 ## 0.4.1
-- Corrigida a chamada para `pass.js` do MeshCentral 1.2.1.
-- Corrige o crash `TypeError: fn is not a function` após informar usuário e senha no endpoint `/drive`.
-- `pass.hash` agora é chamada como `hash(password, salt, null, callback)`.
-- A leitura do retorno considera o formato `(err, salt, hash, tag)`.
+- Tentativa de ajuste da chamada para `pass.js`.
 
 ## 0.4.0
 - Ajustado para instalação via GitHub pelo Plugin Manager do MeshCentral.

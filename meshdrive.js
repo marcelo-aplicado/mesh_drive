@@ -9,6 +9,7 @@ module.exports.meshdrive = function (parent) {
     var fs = require('fs');
     var path = require('path');
     var crypto = require('crypto');
+
     var obj = {};
     obj.parent = parent;
     obj.meshServer = parent.parent;
@@ -26,7 +27,8 @@ module.exports.meshdrive = function (parent) {
         defaultUserSubFolder: '',
         readOnly: false,
         allowPublic: false,
-        debugAuth: false
+        debugAuth: false,
+        passwordIterations: 12000
     }, settings.meshDrive || settings.meshdrive || {});
 
     function log(msg) { try { obj.debug('PLUGIN', 'Mesh Drive', msg); } catch (e) {} try { console.log('PLUGIN: Mesh Drive: ' + msg); } catch (e) {} }
@@ -63,34 +65,28 @@ module.exports.meshdrive = function (parent) {
             } catch (e) { resolve(null); }
         });
     }
-    function loadPassModule() {
-        var tries = [
-            'meshcentral/pass',
-            path.join(process.cwd(), 'node_modules', 'meshcentral', 'pass.js'),
-            path.join(process.cwd(), 'pass.js'),
-            path.join(__dirname, '..', '..', '..', 'node_modules', 'meshcentral', 'pass.js'),
-            path.join(__dirname, '..', '..', '..', '..', 'node_modules', 'meshcentral', 'pass.js')
-        ];
-        for (var i = 0; i < tries.length; i++) { try { return require(tries[i]); } catch (e) {} }
-        return null;
-    }
     function timingSafeEquals(a, b) {
         a = String(a || ''); b = String(b || '');
         var ab = Buffer.from(a); var bb = Buffer.from(b);
         if (ab.length !== bb.length) return false;
         try { return crypto.timingSafeEqual(ab, bb); } catch (e) { return false; }
     }
-    function hashPassword(passModule, password, salt) {
+    function getHashByteLength(storedHash) {
+        try {
+            var b = Buffer.from(String(storedHash || ''), 'base64');
+            if (b && b.length > 0) return b.length;
+        } catch (e) {}
+        return 64;
+    }
+    function pbkdf2Hash(password, salt, storedHash) {
         return new Promise(function(resolve) {
             try {
-                if (!passModule || typeof passModule.hash !== 'function') return resolve(null);
-                // MeshCentral 1.2.1: hash(pwd, salt, tag, fn). Callback: fn(err, salt, hash, tag).
-                passModule.hash(password, salt, null, function(err, returnedSalt, returnedHash) {
-                    if (err) { log('password hash error: ' + err); return resolve(null); }
-                    if (Buffer.isBuffer(returnedHash)) return resolve(returnedHash.toString('base64'));
-                    return resolve(String(returnedHash || ''));
+                var keyLen = getHashByteLength(storedHash);
+                crypto.pbkdf2(password, salt, cfg.passwordIterations, keyLen, 'sha384', function(err, hash) {
+                    if (err) { log('pbkdf2 error: ' + err); return resolve(null); }
+                    resolve(hash.toString('base64'));
                 });
-            } catch (e) { log('password hash exception: ' + (e && e.stack ? e.stack : e)); resolve(null); }
+            } catch (e) { log('pbkdf2 exception: ' + (e && e.stack ? e.stack : e)); resolve(null); }
         });
     }
     async function findLocalUser(username) {
@@ -107,7 +103,7 @@ module.exports.meshdrive = function (parent) {
         var salt = userDoc.salt;
         var stored = userDoc.hash || userDoc.passhash || userDoc.pwhash || userDoc.passwordhash;
         if (!salt || !stored) { if (cfg.debugAuth) log('user has no local password hash: ' + found.username); return null; }
-        var computed = await hashPassword(loadPassModule(), password, salt);
+        var computed = await pbkdf2Hash(password, salt, stored);
         if (!computed) { if (cfg.debugAuth) log('could not compute password hash'); return null; }
         var ok = timingSafeEquals(stored, computed) || timingSafeEquals(String(stored).toLowerCase(), String(computed).toLowerCase());
         if (!ok) { if (cfg.debugAuth) log('invalid password for: ' + found.username); return null; }

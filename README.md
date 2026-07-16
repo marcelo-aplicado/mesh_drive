@@ -28,15 +28,6 @@ Rota: /drive
 Raiz dos arquivos: /opt/meshcentral/meshcentral-files/domain/user-<usuario>/
 ```
 
-## Teste
+## Correção 0.4.2
 
-```bash
-curl -k -I https://mesh.aplicado.com.br/drive
-```
-
-Resposta esperada sem credenciais:
-
-```text
-HTTP/1.1 401 Unauthorized
-WWW-Authenticate: Basic realm="Mesh Drive"
-```
+A versão 0.4.2 não chama mais `pass.js`. Ela calcula o PBKDF2 diretamente para evitar crash do MeshCentral durante autenticação Basic do `/drive`.
