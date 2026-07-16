@@ -14,13 +14,20 @@ module.exports.meshdrive = function (parent) {
     obj.parent = parent;
     obj.meshServer = parent.parent;
     obj.debug = obj.meshServer.debug;
-    obj.exports = [];
+    obj.exports = [
+        'onWebUIStartupEnd',
+        'goPageEnd',
+        'openLauncher',
+        'injectMeshDriveLauncher'
+    ];
 
     var settings = ((obj.meshServer || {}).config || {}).settings || {};
     var cfg = Object.assign({
         enabled: true,
         route: '/drive',
+        launcherRoute: '/meshdrive',
         publicUrl: 'https://mesh.aplicado.com.br/drive',
+        launcherUrl: 'https://mesh.aplicado.com.br/meshdrive/launcher',
         meshFilesRoot: '/opt/meshcentral/meshcentral-files',
         meshDomainFolder: 'domain',
         userFolderPrefix: 'user-',
@@ -143,7 +150,8 @@ module.exports.meshdrive = function (parent) {
     function sendXml(res, code, body, headers) { res.writeHead(code, Object.assign({ 'Content-Type': 'application/xml; charset=utf-8' }, headers || {})); res.end(body); }
     function methodNotAllowed(res) { res.writeHead(405); res.end(); }
     function copyRecursive(src, dest) { var st = fs.statSync(src); if (st.isDirectory()) { ensureDir(dest); fs.readdirSync(src).forEach(function(f) { copyRecursive(path.join(src, f), path.join(dest, f)); }); } else { fs.copyFileSync(src, dest); } }
-    async function handler(req, res) {
+
+    async function davHandler(req, res) {
         var user = await authenticate(req, res); if (!user) return;
         var rel = requestPath(req), fp = fullPath(user, rel); if (!fp) { res.writeHead(403); res.end(); return; }
         try {
@@ -162,8 +170,76 @@ module.exports.meshdrive = function (parent) {
             }
         } catch (e) { log('handler error: ' + (e && e.stack ? e.stack : e)); try { res.writeHead(500); res.end(); } catch (ex) {} }
     }
+
+    function htmlEscape(s) { return String(s).replace(/[<>&'"]/g, function(c) { return {'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&#39;','"':'&quot;'}[c]; }); }
+    function sendText(res, name, content, contentType) {
+        res.writeHead(200, { 'Content-Type': contentType || 'text/plain; charset=utf-8', 'Content-Disposition': 'attachment; filename="' + name + '"' });
+        res.end(content);
+    }
+    function launcherHtml() {
+        var webdavUrl = cfg.publicUrl.replace(/\/$/, '/') ;
+        var host = webdavUrl.replace(/^https:\/\//, '').replace(/\/drive\/?$/, '');
+        var winUnc = '\\\\' + host + '@SSL\\drive';
+        var winDavRoot = '\\\\' + host + '@SSL\\DavWWWRoot\\drive';
+        var davsUrl = 'davs://' + host + '/drive/';
+        return '<!DOCTYPE html><html lang="pt-br"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mesh Drive</title><style>body{font-family:Segoe UI,Arial,sans-serif;background:#f4f7fb;margin:0;color:#1f2937}.wrap{max-width:1050px;margin:0 auto;padding:32px}.hero{background:#fff;border:1px solid #dbe3ef;border-radius:18px;padding:28px;box-shadow:0 10px 25px rgba(15,23,42,.08)}h1{margin:0 0 8px;font-size:32px}.muted{color:#667085}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:20px}.card{background:#fff;border:1px solid #dbe3ef;border-radius:16px;padding:20px}.card.reco{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12)}.badge{display:inline-block;background:#e0ecff;color:#1d4ed8;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}.btn{display:inline-block;background:#2563eb;color:#fff;text-decoration:none;border:0;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer}.btn.secondary{background:#eef2f7;color:#1f2937}.btn.green{background:#16803c}code,pre{background:#0f172a;color:#e5e7eb;border-radius:8px;padding:10px;display:block;white-space:pre-wrap;overflow:auto}.small{font-size:13px}.ok{color:#16803c;font-weight:600}</style></head><body><div class="wrap"><div class="hero"><span class="badge">Mesh Drive</span><h1>Abrir ou mapear seus arquivos</h1><p class="muted">O sistema detecta seu sistema operacional e mostra a melhor opção. Seus arquivos são acessados via WebDAV em <b>' + htmlEscape(webdavUrl) + '</b>.</p><p id="detected" class="ok">Detectando sistema...</p><div class="actions"><button class="btn" onclick="copyText(\'' + htmlEscape(webdavUrl) + '\')">Copiar URL WebDAV</button><button class="btn secondary" onclick="copyText(\'' + htmlEscape(winUnc) + '\')">Copiar caminho Windows</button></div></div><div class="cards"><div class="card" id="card-windows"><span class="badge">Windows</span><h2>Abrir no Explorer</h2><p class="small">Use o caminho WebDAV UNC. Se o navegador bloquear links file://, copie e cole no Explorer.</p><code>' + htmlEscape(winUnc) + '</code><div class="actions"><a class="btn" href="file:///' + encodeURI(winUnc.replace(/\\/g, '/')) + '">Tentar abrir</a><button class="btn secondary" onclick="copyText(\'' + htmlEscape(winUnc) + '\')">Copiar</button></div><h3>Mapear unidade</h3><code>net use M: ' + htmlEscape(winUnc) + ' /user:%USERNAME% * /persistent:yes</code><div class="actions"><a class="btn green" href="/meshdrive/scripts/windows-map.cmd">Baixar .CMD</a><button class="btn secondary" onclick="copyText(\'net use M: ' + htmlEscape(winUnc) + ' /user:%USERNAME% * /persistent:yes\')">Copiar comando</button></div><p class="small">Alternativa: <code>' + htmlEscape(winDavRoot) + '</code></p></div><div class="card" id="card-linux"><span class="badge">Linux</span><h2>Abrir no gerenciador de arquivos</h2><code>' + htmlEscape(davsUrl) + '</code><div class="actions"><a class="btn" href="' + htmlEscape(davsUrl) + '">Tentar abrir</a><button class="btn secondary" onclick="copyText(\'' + htmlEscape(davsUrl) + '\')">Copiar</button></div><h3>Montar com davfs2</h3><code>mkdir -p ~/MeshDrive\nsudo mount -t davfs ' + htmlEscape(webdavUrl) + ' ~/MeshDrive</code><div class="actions"><a class="btn green" href="/meshdrive/scripts/linux-map.sh">Baixar .SH</a></div></div><div class="card" id="card-macos"><span class="badge">macOS</span><h2>Abrir no Finder</h2><code>' + htmlEscape(davsUrl) + '</code><div class="actions"><a class="btn" href="' + htmlEscape(davsUrl) + '">Tentar abrir</a><button class="btn secondary" onclick="copyText(\'' + htmlEscape(davsUrl) + '\')">Copiar</button></div><h3>Montar via terminal</h3><code>mkdir -p ~/MeshDrive\nmount_webdav ' + htmlEscape(webdavUrl) + ' ~/MeshDrive</code><div class="actions"><a class="btn green" href="/meshdrive/scripts/macos-map.sh">Baixar .SH</a></div></div></div></div><script>function copyText(t){navigator.clipboard.writeText(t).then(function(){alert("Copiado: "+t);},function(){prompt("Copie o texto abaixo:",t);});}var ua=navigator.userAgent||"";var os="Sistema não identificado";var id="";if(/Windows/i.test(ua)){os="Windows";id="card-windows";}else if(/Macintosh|Mac OS/i.test(ua)){os="macOS";id="card-macos";}else if(/Linux/i.test(ua)){os="Linux";id="card-linux";}document.getElementById("detected").innerText="Sistema detectado: "+os;if(id){document.getElementById(id).classList.add("reco");}</script></body></html>';
+    }
+    function launcherHandler(req, res) {
+        var url = req.url || '';
+        if (url.indexOf('/scripts/windows-map.cmd') >= 0) {
+            var win = '@echo off\r\nset DRIVE=M:\r\nset TARGET=\\\\mesh.aplicado.com.br@SSL\\drive\r\necho Mapping Mesh Drive to %DRIVE%\r\nnet use %DRIVE% /delete /y >nul 2>nul\r\nnet use %DRIVE% %TARGET% /persistent:yes\r\nif errorlevel 1 pause\r\nexplorer %DRIVE%\r\n';
+            return sendText(res, 'MapMeshDrive.cmd', win, 'application/octet-stream');
+        }
+        if (url.indexOf('/scripts/linux-map.sh') >= 0) {
+            var lin = '#!/bin/sh\nmkdir -p "$HOME/MeshDrive"\necho "Mounting Mesh Drive in $HOME/MeshDrive"\nsudo mount -t davfs https://mesh.aplicado.com.br/drive/ "$HOME/MeshDrive"\nxdg-open "$HOME/MeshDrive" >/dev/null 2>&1 &\n';
+            return sendText(res, 'map-mesh-drive-linux.sh', lin, 'application/x-sh; charset=utf-8');
+        }
+        if (url.indexOf('/scripts/macos-map.sh') >= 0) {
+            var mac = '#!/bin/sh\nmkdir -p "$HOME/MeshDrive"\necho "Mounting Mesh Drive in $HOME/MeshDrive"\nmount_webdav https://mesh.aplicado.com.br/drive/ "$HOME/MeshDrive"\nopen "$HOME/MeshDrive"\n';
+            return sendText(res, 'map-mesh-drive-macos.sh', mac, 'application/x-sh; charset=utf-8');
+        }
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(launcherHtml());
+    }
     function findApp() { var c = [obj.meshServer && obj.meshServer.webserver && obj.meshServer.webserver.app, obj.meshServer && obj.meshServer.app, parent && parent.app, parent && parent.webserver && parent.webserver.app]; for (var i = 0; i < c.length; i++) if (c[i] && typeof c[i].use === 'function') return c[i]; return null; }
-    obj.hook_setupHttpHandlers = function() { if (cfg.enabled === false) { log('disabled'); return; } var app = findApp(); if (!app) { log('Express app not found; cannot register route ' + cfg.route); return; } ensureDir(nativeDomainRoot()); app.use(cfg.route, function(req, res) { handler(req, res); }); log('registered route ' + cfg.route + ' -> ' + nativeDomainRoot() + '/' + cfg.userFolderPrefix + '<username>'); };
+
+    obj.hook_setupHttpHandlers = function() {
+        if (cfg.enabled === false) { log('disabled'); return; }
+        var app = findApp();
+        if (!app) { log('Express app not found; cannot register routes'); return; }
+        ensureDir(nativeDomainRoot());
+        app.use(cfg.route, function(req, res) { davHandler(req, res); });
+        app.use(cfg.launcherRoute, function(req, res) { launcherHandler(req, res); });
+        log('registered route ' + cfg.route + ' -> ' + nativeDomainRoot() + '/' + cfg.userFolderPrefix + '<username>');
+        log('registered launcher route ' + cfg.launcherRoute + '/launcher');
+    };
     obj.server_startup = function() { log('loaded for ' + cfg.publicUrl + ', root=' + nativeDomainRoot()); };
+
+    /* Browser-side helpers exported to MeshCentral Web UI */
+    obj.openLauncher = function() { window.open('/meshdrive/launcher', '_blank'); };
+    obj.injectMeshDriveLauncher = function() {
+        try {
+            if (document.getElementById('plugin_meshDriveLauncher')) return;
+            var html = '<div id="plugin_meshDriveLauncher" style="margin:10px 0;padding:10px;border:1px solid #d0d7de;border-radius:8px;background:#f6f8fa;max-width:420px;">' +
+                '<div style="font-weight:600;margin-bottom:4px;">📁 Mesh Drive</div>' +
+                '<div style="font-size:12px;margin-bottom:8px;color:#57606a;">Abra ou mapeie seus arquivos do My Files no Windows, Linux ou macOS.</div>' +
+                '<button onclick="pluginHandler.meshdrive.openLauncher();" style="padding:6px 10px;border-radius:6px;border:1px solid #1f6feb;background:#1f6feb;color:white;cursor:pointer;">Abrir opções do Mesh Drive</button>' +
+                '</div>';
+            var targets = [];
+            var ids = ['p5', 'p13', 'p11', 'p2', 'p3'];
+            for (var i = 0; i < ids.length; i++) { var el = document.getElementById(ids[i]); if (el) targets.push(el); }
+            var all = document.querySelectorAll('div,section,td');
+            for (var j = 0; j < all.length && targets.length < 8; j++) {
+                var txt = (all[j].innerText || '').toLowerCase();
+                if ((txt.indexOf('my files') >= 0 || txt.indexOf('meus arquivos') >= 0 || txt.indexOf('arquivos') >= 0) && all[j].offsetParent != null) targets.push(all[j]);
+            }
+            if (targets.length > 0) { targets[0].insertAdjacentHTML('afterbegin', html); return; }
+            var account = document.querySelector('#p2AccountActions p.mL');
+            if (account) { account.insertAdjacentHTML('beforeend', '<span id="plugin_meshDriveLauncher" style="display:block"><a onclick="pluginHandler.meshdrive.openLauncher();">📁 Mesh Drive</a></span>'); }
+        } catch (e) { console.log('Mesh Drive launcher injection failed', e); }
+    };
+    obj.onWebUIStartupEnd = function() { setTimeout(pluginHandler.meshdrive.injectMeshDriveLauncher, 500); setTimeout(pluginHandler.meshdrive.injectMeshDriveLauncher, 2000); };
+    obj.goPageEnd = function() { setTimeout(pluginHandler.meshdrive.injectMeshDriveLauncher, 300); };
+
     return obj;
 };

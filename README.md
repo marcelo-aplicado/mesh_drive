@@ -1,6 +1,6 @@
 # Mesh Drive
 
-Plugin experimental para expor o **My Files** do MeshCentral via endpoint WebDAV em `/drive`.
+Plugin experimental para expor o **My Files** do MeshCentral via WebDAV em `/drive` e oferecer uma página auxiliar com opções para abrir ou mapear em Windows, Linux e macOS.
 
 ## Instalação pelo MeshCentral
 
@@ -23,11 +23,27 @@ O bloco acima deve ficar dentro de `settings`.
 ## Valores padrão
 
 ```text
-URL: https://mesh.aplicado.com.br/drive
-Rota: /drive
+URL WebDAV: https://mesh.aplicado.com.br/drive/
+Página auxiliar: https://mesh.aplicado.com.br/meshdrive/launcher
 Raiz dos arquivos: /opt/meshcentral/meshcentral-files/domain/user-<usuario>/
 ```
 
-## Correção 0.4.2
+## Recursos
 
-A versão 0.4.2 não chama mais `pass.js`. Ela calcula o PBKDF2 diretamente para evitar crash do MeshCentral durante autenticação Basic do `/drive`.
+- Endpoint WebDAV `/drive`.
+- Página auxiliar `/meshdrive/launcher`.
+- Detecção de sistema operacional.
+- Opções para abrir e mapear no Windows, Linux e macOS.
+- Link visual `Mesh Drive` integrado à interface do MeshCentral.
+
+## Teste WebDAV
+
+```bash
+curl -k -i -u marcelo -X PROPFIND -H "Depth: 1" https://mesh.aplicado.com.br/drive/
+```
+
+Resposta esperada:
+
+```text
+HTTP/1.1 207 Multi-Status
+```
