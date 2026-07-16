@@ -1,7 +1,7 @@
 {
   "name": "Mesh Drive",
   "shortName": "meshdrive",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "author": "Marcelo Henrique da Silva / Microsoft Copilot",
   "description": "Expose MeshCentral My Files as Mesh Drive using the native meshcentral-files/domain/user-<username> folders.",
   "hasAdminPanel": false,
@@ -9,10 +9,7 @@
   "changelogUrl": "https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/changelog.md",
   "configUrl": "https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/config.json",
   "downloadUrl": "https://github.com/marcelo-aplicado/mesh_drive/archive/refs/heads/main.zip",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/marcelo-aplicado/mesh_drive.git"
-  },
+  "repository": { "type": "git", "url": "https://github.com/marcelo-aplicado/mesh_drive.git" },
   "versionHistoryUrl": "https://api.github.com/repos/marcelo-aplicado/mesh_drive/tags",
   "meshCentralCompat": ">=1.1.35"
 }
