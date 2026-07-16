@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.2
+- Card integrado ao My Files atualizado com três ações rápidas: baixar link, copiar endereço e abrir todas as opções.
+- A ação de baixar link detecta o sistema operacional e baixa `.url` no Windows, `.desktop` no Linux ou `.webloc` no macOS.
+- A ação de copiar endereço detecta o sistema operacional e copia o endereço correto para Windows, Linux ou macOS.
+- Adicionados endpoints para gerar atalhos: `/meshdrive/scripts/windows-link.url`, `/meshdrive/scripts/linux-link.desktop` e `/meshdrive/scripts/macos-link.webloc`.
+
 ## 0.5.1
 - Corrigido o botão de copiar caminho Windows, preservando corretamente as barras invertidas.
 - Adicionada função `jsLiteral()` para inserir caminhos em JavaScript com escape seguro.

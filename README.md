@@ -56,3 +56,20 @@ Corrige o botão de copiar caminho Windows. O caminho copiado deve ser exatament
 ```text
 \\mesh.aplicado.com.br@SSL\drive
 ```
+
+
+## Correção 0.5.2
+
+O bloco exibido no My Files agora possui três botões rápidos:
+
+- Baixar link detectado pelo sistema operacional.
+- Copiar endereço detectado pelo sistema operacional.
+- Abrir todas as opções.
+
+Atalhos gerados:
+
+```text
+Windows: MeshDrive.url
+Linux: mesh-drive.desktop
+macOS: MeshDrive.webloc
+```

@@ -18,6 +18,8 @@ module.exports.meshdrive = function (parent) {
         'onWebUIStartupEnd',
         'goPageEnd',
         'openLauncher',
+        'downloadDetectedLink',
+        'copyDetectedAddress',
         'injectMeshDriveLauncher'
     ];
 
@@ -258,6 +260,18 @@ document.getElementById('detected').innerText='Sistema detectado: '+os;if(id){do
     }
     function launcherHandler(req, res) {
         var url = req.url || '';
+        if (url.indexOf('/scripts/windows-link.url') >= 0) {
+            var shortcut = '[InternetShortcut]\r\nURL=file://\\\\mesh.aplicado.com.br@SSL\\drive\r\nIconFile=explorer.exe\r\nIconIndex=0\r\n';
+            return sendText(res, 'MeshDrive.url', shortcut, 'application/octet-stream');
+        }
+        if (url.indexOf('/scripts/linux-link.desktop') >= 0) {
+            var desktop = '[Desktop Entry]\nType=Link\nName=Mesh Drive\nURL=davs://mesh.aplicado.com.br/drive/\nIcon=folder-remote\n';
+            return sendText(res, 'mesh-drive.desktop', desktop, 'application/octet-stream');
+        }
+        if (url.indexOf('/scripts/macos-link.webloc') >= 0) {
+            var webloc = '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n  <key>URL</key>\n  <string>davs://mesh.aplicado.com.br/drive/</string>\n</dict>\n</plist>\n';
+            return sendText(res, 'MeshDrive.webloc', webloc, 'application/octet-stream');
+        }
         if (url.indexOf('/scripts/windows-map.cmd') >= 0) {
             var win = '@echo off\r\nset DRIVE=M:\r\nset TARGET=\\\\mesh.aplicado.com.br@SSL\\drive\r\necho Mapping Mesh Drive to %DRIVE%\r\nnet use %DRIVE% /delete /y >nul 2>nul\r\nnet use %DRIVE% %TARGET% /persistent:yes\r\nif errorlevel 1 pause\r\nexplorer %DRIVE%\r\n';
             return sendText(res, 'MapMeshDrive.cmd', win, 'application/octet-stream');
@@ -289,13 +303,43 @@ document.getElementById('detected').innerText='Sistema detectado: '+os;if(id){do
 
     /* Browser-side helpers exported to MeshCentral Web UI */
     obj.openLauncher = function() { window.open('/meshdrive/launcher', '_blank'); };
+    obj.getDetectedInfo = function() {
+        var ua = navigator.userAgent || '';
+        if (/Windows/i.test(ua)) {
+            return { os: 'Windows', address: String.raw`\\mesh.aplicado.com.br@SSL\drive`, link: '/meshdrive/scripts/windows-link.url', label: 'Baixar link do Windows' };
+        }
+        if (/Macintosh|Mac OS/i.test(ua)) {
+            return { os: 'macOS', address: 'davs://mesh.aplicado.com.br/drive/', link: '/meshdrive/scripts/macos-link.webloc', label: 'Baixar link do macOS' };
+        }
+        if (/Linux/i.test(ua)) {
+            return { os: 'Linux', address: 'davs://mesh.aplicado.com.br/drive/', link: '/meshdrive/scripts/linux-link.desktop', label: 'Baixar link do Linux' };
+        }
+        return { os: 'Outro sistema', address: 'https://mesh.aplicado.com.br/drive/', link: '/meshdrive/launcher', label: 'Abrir opções' };
+    };
+    obj.copyDetectedAddress = function() {
+        var info = pluginHandler.meshdrive.getDetectedInfo();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(info.address).then(function() { alert('Endereço copiado (' + info.os + '): ' + info.address); }, function() { prompt('Copie o endereço abaixo:', info.address); });
+        } else {
+            prompt('Copie o endereço abaixo:', info.address);
+        }
+    };
+    obj.downloadDetectedLink = function() {
+        var info = pluginHandler.meshdrive.getDetectedInfo();
+        window.location.href = info.link;
+    };
     obj.injectMeshDriveLauncher = function() {
         try {
             if (document.getElementById('plugin_meshDriveLauncher')) return;
-            var html = '<div id="plugin_meshDriveLauncher" style="margin:10px 0;padding:10px;border:1px solid #d0d7de;border-radius:8px;background:#f6f8fa;max-width:420px;">' +
+            var info = pluginHandler.meshdrive.getDetectedInfo();
+            var html = '<div id="plugin_meshDriveLauncher" style="margin:10px 0;padding:10px;border:1px solid #d0d7de;border-radius:8px;background:#f6f8fa;max-width:520px;">' +
                 '<div style="font-weight:600;margin-bottom:4px;">📁 Mesh Drive</div>' +
-                '<div style="font-size:12px;margin-bottom:8px;color:#57606a;">Abra ou mapeie seus arquivos do My Files no Windows, Linux ou macOS.</div>' +
-                '<button onclick="pluginHandler.meshdrive.openLauncher();" style="padding:6px 10px;border-radius:6px;border:1px solid #1f6feb;background:#1f6feb;color:white;cursor:pointer;">Abrir opções do Mesh Drive</button>' +
+                '<div style="font-size:12px;margin-bottom:8px;color:#57606a;">Sistema detectado: <b>' + info.os + '</b>. Abra ou mapeie seus arquivos do My Files.</div>' +
+                '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
+                '<button onclick="pluginHandler.meshdrive.downloadDetectedLink();" style="padding:6px 10px;border-radius:6px;border:1px solid #1f6feb;background:#1f6feb;color:white;cursor:pointer;">Baixar link</button>' +
+                '<button onclick="pluginHandler.meshdrive.copyDetectedAddress();" style="padding:6px 10px;border-radius:6px;border:1px solid #57606a;background:#f6f8fa;color:#24292f;cursor:pointer;">Copiar endereço</button>' +
+                '<button onclick="pluginHandler.meshdrive.openLauncher();" style="padding:6px 10px;border-radius:6px;border:1px solid #16803c;background:#16803c;color:white;cursor:pointer;">Todas as opções</button>' +
+                '</div>' +
                 '</div>';
             var targets = [];
             var ids = ['p5', 'p13', 'p11', 'p2', 'p3'];
