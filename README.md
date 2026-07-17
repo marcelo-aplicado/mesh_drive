@@ -1,6 +1,6 @@
 # Mesh Drive
 
-Mesh Drive expõe o **My Files** do MeshCentral via WebDAV em `/drive` e adiciona botões rápidos em **Meus Arquivos** para copiar o endereço WebDAV e copiar um comando de mapeamento para Windows.
+Mesh Drive expõe o **My Files** do MeshCentral via WebDAV em `/drive` e adiciona botões rápidos em **Meus Arquivos** para copiar o endereço WebDAV e copiar um comando de mapeamento conforme o sistema operacional.
 
 ## Pré-requisito: ativar plugins no MeshCentral
 
@@ -29,13 +29,10 @@ https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/config.json
 - WebDAV: `https://<HOSTNAME>/drive/`
 - O hostname é detectado automaticamente a partir do servidor MeshCentral acessado no navegador.
 - Em **Meus Arquivos**, dois botões são exibidos:
-  - **Mesh Drive**: copia o endereço `\<HOSTNAME>@SSL\drive`.
-  - **Mapear**: copia um comando PowerShell que tenta mapear automaticamente a primeira letra livre entre `M:` e `Z:`.
-
+  - **Mesh Drive**: copia o endereço adequado ao sistema operacional.
+  - **Mapear**: copia um comando para abrir/mapear o Mesh Drive conforme o sistema operacional.
 
 ## Comportamento por sistema operacional
-
-Os botões detectam o sistema operacional pelo navegador:
 
 - **Windows**
   - `Mesh Drive`: copia `\\<HOSTNAME>@SSL\drive`.
@@ -47,27 +44,7 @@ Os botões detectam o sistema operacional pelo navegador:
 
 - **macOS**
   - `Mesh Drive`: copia `davs://<HOSTNAME>/drive/`.
-  - `Mapear`: copia um comando `open davs://<HOSTNAME>/drive/`.
-
-## Botão Mesh Drive
-
-Copia o endereço WebDAV no formato Windows:
-
-```text
-\<HOSTNAME>@SSL\drive
-```
-
-Esse endereço pode ser colado diretamente na barra do Windows Explorer.
-
-## Botão Mapear
-
-Copia um comando PowerShell que:
-
-- tenta usar `M:` primeiro;
-- se `M:` estiver ocupada, tenta `N:`, `O:`, `P:` e assim por diante até `Z:`;
-- executa `net use` com o caminho WebDAV;
-- tenta nomear a unidade como **Mesh Drive**;
-- abre o Explorer na unidade mapeada quando o mapeamento é concluído.
+  - `Mapear`: copia o comando `open "davs://<HOSTNAME>/drive/"`.
 
 ## Teste WebDAV
 
@@ -81,24 +58,16 @@ Resposta esperada:
 HTTP/1.1 207 Multi-Status
 ```
 
-## Observações
-
-O plugin não possui domínio fixo para o WebDAV. Os botões usam o hostname atual do MeshCentral via navegador, permitindo instalar o mesmo plugin em diferentes servidores sem alterar o código.
-
 ## Histórico recente
+
+### 1.0.2
+
+Correção de escopo no frontend: os botões agora são autocontidos e não dependem de helpers locais.
 
 ### 1.0.1
 
-Botões `Mesh Drive` e `Mapear` agora geram endereço e comando conforme o sistema operacional detectado.
+Botões `Mesh Drive` e `Mapear` geram endereço e comando conforme o sistema operacional detectado.
 
 ### 1.0.0
 
-Versão final estável com URL real de instalação, instrução de ativação de plugins no MeshCentral e hostname dinâmico para WebDAV.
-
-### 0.7.4
-
-Remove domínio fixo do frontend e gera endereço/comando de mapeamento usando o hostname atual do MeshCentral.
-
-### 0.7.3
-
-Popup do botão `Mesh Drive` mostra o endereço e orientação de uso no Explorer. O botão `Mapear` tenta rotular a unidade como `Mesh Drive`.
+Versão estável com URL real de instalação, instrução de ativação de plugins no MeshCentral e hostname dinâmico para WebDAV.

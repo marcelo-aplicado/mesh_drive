@@ -182,23 +182,36 @@ module.exports.meshdrive = function (parent) {
         a.use(cfg.route, function(req, res) { dav(req, res); });
         log('registered route ' + cfg.route + ' -> ' + rootDomain() + '/' + cfg.userFolderPrefix + '<username>');
     };
-    obj.server_startup = function() { log('loaded for ' + cfg.publicUrl + ', root=' + rootDomain()); };
+    obj.server_startup = function() { log('loaded for ' + (cfg.publicUrl || 'dynamic-host') + ', root=' + rootDomain()); };
 
-    function meshDriveDetectedOs() {
+    obj.copyDetectedAddress = function() {
         var ua = navigator.userAgent || '';
-        if (/Windows/i.test(ua)) return 'windows';
-        if (/Macintosh|Mac OS/i.test(ua)) return 'macos';
-        if (/Linux/i.test(ua)) return 'linux';
-        return 'other';
-    }
-    function meshDriveAddressForOs(host, os) {
-        if (os === 'windows') return '\\\\' + host + '@SSL\\drive';
-        if (os === 'linux' || os === 'macos') return 'davs://' + host + '/drive/';
-        return 'https://' + host + '/drive/';
-    }
-    function meshDriveMapCommandForOs(host, os) {
+        var host = window.location.hostname || window.location.host || 'localhost';
+        var os = 'other';
+        if (/Windows/i.test(ua)) os = 'windows';
+        else if (/Macintosh|Mac OS/i.test(ua)) os = 'macos';
+        else if (/Linux/i.test(ua)) os = 'linux';
+        var address = 'https://' + host + '/drive/';
+        if (os === 'windows') address = '\\\\' + host + '@SSL\\drive';
+        else if (os === 'linux' || os === 'macos') address = 'davs://' + host + '/drive/';
+        var where = (os === 'windows') ? 'Windows Explorer' : ((os === 'linux') ? 'gerenciador de arquivos do Linux' : ((os === 'macos') ? 'Finder' : 'navegador'));
+        var msg = 'Endereço do Mesh Drive copiado.\n\nCole este endereço no ' + where + ' para abrir seus arquivos:\n\n' + address;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(address).then(function() { alert(msg); }, function() { prompt('Copie o endereço abaixo:', address); });
+        } else {
+            prompt('Copie o endereço abaixo:', address);
+        }
+    };
+    obj.copyMapCommand = function() {
+        var ua = navigator.userAgent || '';
+        var host = window.location.hostname || window.location.host || 'localhost';
+        var os = 'other';
+        if (/Windows/i.test(ua)) os = 'windows';
+        else if (/Macintosh|Mac OS/i.test(ua)) os = 'macos';
+        else if (/Linux/i.test(ua)) os = 'linux';
+        var command;
         if (os === 'windows') {
-            return [
+            command = [
                 '$meshHost="' + host.replace(/"/g, '') + '";',
                 '$path="\\\\$($meshHost)@SSL\\drive";',
                 'foreach($l in "M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"){',
@@ -214,38 +227,21 @@ module.exports.meshdrive = function (parent) {
                 '}',
                 '}'
             ].join('');
-        }
-        if (os === 'linux') {
-            return 'URL="davs://' + host.replace(/"/g, '') + '/drive/"; if command -v gio >/dev/null 2>&1; then gio mount "$URL"; fi; if command -v xdg-open >/dev/null 2>&1; then xdg-open "$URL"; else echo "$URL"; fi';
-        }
-        if (os === 'macos') {
-            return 'open "davs://' + host.replace(/"/g, '') + '/drive/"';
-        }
-        return 'https://' + host.replace(/"/g, '') + '/drive/';
-    }
-    function meshDriveCopyText(text, successMessage, fallbackTitle) {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(function() { alert(successMessage); }, function() { prompt(fallbackTitle || successMessage, text); });
+        } else if (os === 'linux') {
+            command = 'URL="davs://' + host.replace(/"/g, '') + '/drive/"; if command -v gio >/dev/null 2>&1; then gio mount "$URL"; fi; if command -v xdg-open >/dev/null 2>&1; then xdg-open "$URL"; else echo "$URL"; fi';
+        } else if (os === 'macos') {
+            command = 'open "davs://' + host.replace(/"/g, '') + '/drive/"';
         } else {
-            prompt(fallbackTitle || successMessage, text);
+            command = 'https://' + host.replace(/"/g, '') + '/drive/';
         }
-    }
-    obj.copyDetectedAddress = function() {
-        var host = window.location.hostname || window.location.host || 'localhost';
-        var os = meshDriveDetectedOs();
-        var address = meshDriveAddressForOs(host, os);
-        var where = (os === 'windows') ? 'Windows Explorer' : ((os === 'linux') ? 'gerenciador de arquivos do Linux' : ((os === 'macos') ? 'Finder' : 'navegador'));
-        var msg = 'Endereço do Mesh Drive copiado.\n\nCole este endereço no ' + where + ' para abrir seus arquivos:\n\n' + address;
-        meshDriveCopyText(address, msg, 'Copie o endereço abaixo:');
-    };
-    obj.copyMapCommand = function() {
-        var host = window.location.hostname || window.location.host || 'localhost';
-        var os = meshDriveDetectedOs();
-        var command = meshDriveMapCommandForOs(host, os);
         var osName = (os === 'windows') ? 'Windows' : ((os === 'linux') ? 'Linux' : ((os === 'macos') ? 'macOS' : 'sistema atual'));
         var msg = 'Comando copiado para ' + osName + '. Execute no terminal para abrir/mapear o Mesh Drive.';
         var popupText = msg + '\n\n' + command;
-        meshDriveCopyText(command, popupText, msg);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(command).then(function() { alert(popupText); }, function() { prompt(msg, command); });
+        } else {
+            prompt(msg, command);
+        }
     };
     obj.injectMeshDriveLauncher = function() {
         try {
