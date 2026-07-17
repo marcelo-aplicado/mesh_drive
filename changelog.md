@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0
+- Versão final estável.
+- README atualizado com URL real de instalação do plugin no GitHub.
+- README atualizado com instrução para ativar plugins no `config.json` do MeshCentral antes da instalação.
+- Mantido hostname dinâmico no plugin para WebDAV e comando de mapeamento.
+
 ## 0.7.4
 - Removido domínio fixo `mesh.aplicado.com.br` do código do frontend.
 - Botões `Mesh Drive` e `Mapear` agora usam automaticamente `window.location.hostname`, ou seja, o hostname atual do servidor MeshCentral.
