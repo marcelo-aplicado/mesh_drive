@@ -17,12 +17,26 @@ https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/config.json
 - Na tela do dispositivo: botões `Abrir Drive` e `Mapear Drive` alinhados à direita do título.
 - Windows: `Mapear Drive` procura a primeira letra livre entre `M:` e `Z:`.
 
-## Debug 0.6.5
+## Correção 0.6.6
 
-Ao clicar em `Abrir Drive` ou `Mapear Drive`, o console do navegador deve mostrar o payload enviado para o MeshCentral. No servidor, o `journalctl` deve mostrar:
+O módulo do agente usa `child_process.execFile()` em vez de `child_process.exec()`, compatível com o runtime do MeshAgent observado no plugin ScriptTask.
 
-```text
-PLUGIN: Mesh Drive serveraction: {...}
+## Teste WebDAV
+
+```bash
+curl -k -i -u marcelo -X PROPFIND -H "Depth: 1" https://mesh.aplicado.com.br/drive/
 ```
 
-Se esse log não aparecer, o evento ainda não está chegando ao método `obj.serveraction()`.
+Esperado:
+
+```text
+HTTP/1.1 207 Multi-Status
+```
+
+## Debug
+
+Após clicar em `Abrir Drive` ou `Mapear Drive`, valide:
+
+```bash
+journalctl -u meshcentral -n 80 | grep -i "Mesh Drive"
+```

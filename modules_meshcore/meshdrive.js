@@ -13,14 +13,31 @@ function meshdrive_sendStatus(status, message) {
     } catch (e) { }
 }
 
-function meshdrive_exec(cmd) {
+function meshdrive_runShell(commandText) {
     try {
-        var child_process = require('child_process');
-        child_process.exec(cmd, { windowsHide: true }, function (err, stdout, stderr) {
-            if (err) { meshdrive_sendStatus('error', String(stderr || err.message || err)); }
-            else { meshdrive_sendStatus('ok', String(stdout || 'OK')); }
+        var child;
+        if (process.platform === 'win32') {
+            child = require('child_process').execFile(process.env['windir'] + '\\system32\\cmd.exe');
+            child.stdin.write(commandText + '\r\n');
+            child.stdin.write('exit\r\n');
+        } else {
+            child = require('child_process').execFile('/bin/sh', ['sh']);
+            child.stdin.write(commandText + '\n');
+            child.stdin.write('exit\n');
+        }
+        child.stdout.str = '';
+        child.stderr.str = '';
+        child.stdout.on('data', function (data) { this.str += data.toString(); });
+        child.stderr.on('data', function (data) { this.str += data.toString(); });
+        child.on('exit', function (code) {
+            var out = '';
+            try { out = (this.stdout.str || '') + (this.stderr.str || ''); } catch (e) { out = ''; }
+            if (code && code !== 0) { meshdrive_sendStatus('error', 'exit=' + code + ' ' + out); }
+            else { meshdrive_sendStatus('ok', out || 'OK'); }
         });
-    } catch (e) { meshdrive_sendStatus('error', String(e && e.message ? e.message : e)); }
+    } catch (e) {
+        meshdrive_sendStatus('error', String(e && e.message ? e.message : e));
+    }
 }
 
 function meshdrive_platform() {
@@ -31,9 +48,13 @@ function meshdrive_platform() {
 
 function meshdrive_openDrive() {
     var p = meshdrive_platform();
-    if (p === 'windows') return meshdrive_exec('cmd.exe /c start "" "\\\\mesh.aplicado.com.br@SSL\\drive"');
-    if (p === 'macos') return meshdrive_exec('/usr/bin/open "davs://mesh.aplicado.com.br/drive/"');
-    return meshdrive_exec('xdg-open "davs://mesh.aplicado.com.br/drive/" >/dev/null 2>&1');
+    if (p === 'windows') {
+        return meshdrive_runShell('start "" "\\\\mesh.aplicado.com.br@SSL\\drive"');
+    }
+    if (p === 'macos') {
+        return meshdrive_runShell('/usr/bin/open "davs://mesh.aplicado.com.br/drive/"');
+    }
+    return meshdrive_runShell('xdg-open "davs://mesh.aplicado.com.br/drive/" >/dev/null 2>&1');
 }
 
 function meshdrive_mapDrive() {
@@ -48,10 +69,13 @@ function meshdrive_mapDrive() {
             "if($drive -eq $null){ exit 22 };" +
             "cmd /c net use $drive $target /persistent:yes;" +
             "Start-Process explorer.exe ($drive+'\\');";
-        return meshdrive_exec('powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand ' + Buffer.from(ps, 'utf16le').toString('base64'));
+        var encoded = Buffer.from(ps, 'utf16le').toString('base64');
+        return meshdrive_runShell('powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand ' + encoded);
     }
-    if (p === 'macos') return meshdrive_exec('mkdir -p "$HOME/MeshDrive" && mount_webdav "https://mesh.aplicado.com.br/drive/" "$HOME/MeshDrive" ; /usr/bin/open "$HOME/MeshDrive"');
-    return meshdrive_exec('mkdir -p "$HOME/MeshDrive" && mount -t davfs "https://mesh.aplicado.com.br/drive/" "$HOME/MeshDrive" ; xdg-open "$HOME/MeshDrive" >/dev/null 2>&1');
+    if (p === 'macos') {
+        return meshdrive_runShell('mkdir -p "$HOME/MeshDrive" && mount_webdav "https://mesh.aplicado.com.br/drive/" "$HOME/MeshDrive" ; /usr/bin/open "$HOME/MeshDrive"');
+    }
+    return meshdrive_runShell('mkdir -p "$HOME/MeshDrive" && mount -t davfs "https://mesh.aplicado.com.br/drive/" "$HOME/MeshDrive" ; xdg-open "$HOME/MeshDrive" >/dev/null 2>&1');
 }
 
 function consoleaction(args, rights, sessionid, parent) {
