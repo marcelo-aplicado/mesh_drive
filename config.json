@@ -1,9 +1,9 @@
 {
   "name": "Mesh Drive",
   "shortName": "meshdrive",
-  "version": "0.6.7",
+  "version": "0.7.0",
   "author": "Marcelo Henrique da Silva / Microsoft Copilot",
-  "description": "Expose MeshCentral My Files via WebDAV and add device-page agent actions to open or map Mesh Drive.",
+  "description": "Expose MeshCentral My Files via WebDAV and add My Files shortcuts to copy the Mesh Drive address and mapping command.",
   "hasAdminPanel": false,
   "homepage": "https://github.com/marcelo-aplicado/mesh_drive",
   "changelogUrl": "https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/changelog.md",

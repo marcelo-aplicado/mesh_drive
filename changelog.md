@@ -1,18 +1,15 @@
 # Changelog
 
+## 0.7.0
+- Versão final simplificada.
+- Removidos completamente os botões da tela do dispositivo.
+- Removido o módulo `modules_meshcore`, pois não há mais execução via agente.
+- Em `Meus Arquivos`, mantidos apenas dois botões:
+  - `Mesh Drive`: copia o endereço WebDAV.
+  - `Mapear`: copia um comando PowerShell para mapear a primeira letra livre entre `M:` e `Z:`.
+- O popup do botão `Mapear` informa apenas que o comando foi copiado e pode ser executado no terminal.
+- Mantido endpoint WebDAV `/drive`.
+
 ## 0.6.7
-- Corrigido `Mapear Drive` removendo PowerShell `-EncodedCommand` e `utf16le`.
-- Windows agora usa somente `cmd.exe`, `net use` e `explorer.exe`.
-- `Mapear Drive` tenta letras de `M:` até `Z:` usando CMD puro.
-- `Abrir Drive` agora usa `explorer.exe "\\mesh.aplicado.com.br@SSL\drive"` em vez de `start`.
-- Adicionado status `info` do agente com plataforma e comando executado, para depuração.
-
-## 0.6.6
-- Substituída a execução do agente de `child_process.exec()` para `child_process.execFile()`.
-- Corrigido erro `undefined not callable (property 'exec' of [object Object])`.
-
-## 0.6.5
-- Adicionado log explícito no início de `obj.serveraction()`.
-
-## 0.6.4
-- Corrigido o módulo do agente com `module.exports = { consoleaction : consoleaction };`.
+- Testes de execução via agente mostraram limitações de sessão e credenciais.
+- Decidido remover a execução automática via agente e manter fluxo manual/copiar comando.
