@@ -29,3 +29,12 @@ Esperado:
 ```text
 HTTP/1.1 207 Multi-Status
 ```
+
+## Debug da tela do dispositivo
+
+Ao clicar nos botões, o console do navegador deve mostrar:
+
+```text
+MeshDrive OPEN nodeid: <nodeid>
+MeshDrive MAP nodeid: <nodeid>
+```

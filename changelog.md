@@ -1,11 +1,15 @@
 # Changelog
 
+## 0.6.2
+- Corrigido erro `getNodeId is not defined` removendo função auxiliar local do caminho exportado.
+- `openDriveOnAgent()` e `mapDriveOnAgent()` agora detectam o dispositivo diretamente dentro da própria função exportada.
+- Melhorada a inserção dos botões na barra de título do dispositivo usando busca mais ampla por `Em geral -` / `General -`.
+- Botões do dispositivo agora usam alinhamento à direita com `float:right` e fallback flex.
+- Mantidos logs no console para depuração do `nodeid`.
+
 ## 0.6.1
-- Corrigido erro de JavaScript `pluginHandler.meshdrive.nodeid is not a function`.
-- `openDriveOnAgent()` e `mapDriveOnAgent()` agora pegam o `nodeid` diretamente de `currentNode._id` ou `currentNodeId`.
-- Botões da tela do dispositivo agora são inseridos na barra de título `Em geral - ...`, alinhados à direita.
-- Adicionados logs no console do navegador para confirmar envio dos comandos `open` e `map`.
-- Mantido botão único em `Meus Arquivos`: copiar endereço do Mesh Drive.
+- Corrigido erro `pluginHandler.meshdrive.nodeid is not a function`.
+- Botões da tela do dispositivo movidos para a barra de título.
 
 ## 0.6.0
 - Adicionados botões na tela do dispositivo: Abrir Drive e Mapear Drive.
