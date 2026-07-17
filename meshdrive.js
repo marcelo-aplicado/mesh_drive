@@ -192,11 +192,11 @@ module.exports.meshdrive = function (parent) {
         } else if (/Macintosh|Mac OS|Linux/i.test(ua)) {
             address = 'davs://mesh.aplicado.com.br/drive/';
         }
-        var msg = 'Endereço do Mesh Drive copiado.';
+        var msg = 'Endereço do Mesh Drive copiado.\n\nCole este endereço na barra do Windows Explorer para abrir seus arquivos:\n\n' + address;
         if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(address).then(function() { alert(msg); }, function() { prompt(msg, address); });
+            navigator.clipboard.writeText(address).then(function() { alert(msg); }, function() { prompt('Copie o endereço abaixo:', address); });
         } else {
-            prompt(msg, address);
+            prompt('Copie o endereço abaixo:', address);
         }
     };
     obj.copyMapCommand = function() {
@@ -206,7 +206,9 @@ module.exports.meshdrive = function (parent) {
             'if(-not (Get-PSDrive -Name $l -ErrorAction SilentlyContinue)){',
             'net use "$($l):" $path;',
             'if($LASTEXITCODE -eq 0){',
-            'reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\DriveIcons\\$l\\DefaultLabel" /ve /d "Mesh Drive" /f | Out-Null;',
+            '$rk="HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\DriveIcons\\$l\\DefaultLabel";',
+            'reg add $rk /ve /d "Mesh Drive" /f | Out-Null;',
+            'try{(New-Object -ComObject Shell.Application).NameSpace("$($l):\\").Self.Name="Mesh Drive"}catch{};',
             'explorer "$($l):\\"',
             '};',
             'break',

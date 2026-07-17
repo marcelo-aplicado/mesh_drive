@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.3
+- O popup do botão `Mesh Drive` agora exibe explicação de uso no Explorer e mostra o endereço copiado.
+- Ajustado comando do botão `Mapear` para tentar definir o nome da unidade como `Mesh Drive` usando chave `DriveIcons` e também Shell.Application quando disponível.
+- Mantida a busca automática pela primeira letra livre de `M:` a `Z:`.
+
 ## 0.7.2
 - O popup do botão `Mapear` volta a exibir o comando copiado junto com o texto explicativo.
 - O comando de mapeamento tenta definir o rótulo da unidade no Explorer como `Mesh Drive`, para exibição como `Mesh Drive (M:)`, `Mesh Drive (N:)`, etc.
