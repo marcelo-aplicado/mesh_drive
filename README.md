@@ -57,17 +57,3 @@ Resposta esperada:
 ```text
 HTTP/1.1 207 Multi-Status
 ```
-
-## Histórico recente
-
-### 1.0.2
-
-Correção de escopo no frontend: os botões agora são autocontidos e não dependem de helpers locais.
-
-### 1.0.1
-
-Botões `Mesh Drive` e `Mapear` geram endereço e comando conforme o sistema operacional detectado.
-
-### 1.0.0
-
-Versão estável com URL real de instalação, instrução de ativação de plugins no MeshCentral e hostname dinâmico para WebDAV.

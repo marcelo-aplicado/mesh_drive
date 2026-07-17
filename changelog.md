@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.1
+- Versão final alinhada ao MeshCentral 1.2.1.
+- README simplificado, removendo a seção de histórico recente.
+- Mantido comportamento dinâmico por sistema operacional e hostname atual do servidor MeshCentral.
+
 ## 1.0.2
 - Corrigido erro de escopo no frontend: `meshDriveDetectedOs is not defined`.
 - As funções `copyDetectedAddress()` e `copyMapCommand()` agora são completamente autocontidas e não dependem de helpers locais não exportados.
