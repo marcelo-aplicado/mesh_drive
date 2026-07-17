@@ -184,47 +184,68 @@ module.exports.meshdrive = function (parent) {
     };
     obj.server_startup = function() { log('loaded for ' + cfg.publicUrl + ', root=' + rootDomain()); };
 
-    obj.copyDetectedAddress = function() {
+    function meshDriveDetectedOs() {
         var ua = navigator.userAgent || '';
-        var host = window.location.hostname || window.location.host || 'localhost';
-        var address = 'https://' + host + '/drive/';
-        if (/Windows/i.test(ua)) {
-            address = '\\\\' + host + '@SSL\\drive';
-        } else if (/Macintosh|Mac OS|Linux/i.test(ua)) {
-            address = 'davs://' + host + '/drive/';
+        if (/Windows/i.test(ua)) return 'windows';
+        if (/Macintosh|Mac OS/i.test(ua)) return 'macos';
+        if (/Linux/i.test(ua)) return 'linux';
+        return 'other';
+    }
+    function meshDriveAddressForOs(host, os) {
+        if (os === 'windows') return '\\\\' + host + '@SSL\\drive';
+        if (os === 'linux' || os === 'macos') return 'davs://' + host + '/drive/';
+        return 'https://' + host + '/drive/';
+    }
+    function meshDriveMapCommandForOs(host, os) {
+        if (os === 'windows') {
+            return [
+                '$meshHost="' + host.replace(/"/g, '') + '";',
+                '$path="\\\\$($meshHost)@SSL\\drive";',
+                'foreach($l in "M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"){',
+                'if(-not (Get-PSDrive -Name $l -ErrorAction SilentlyContinue)){',
+                'net use "$($l):" $path;',
+                'if($LASTEXITCODE -eq 0){',
+                '$rk="HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\DriveIcons\\$l\\DefaultLabel";',
+                'reg add $rk /ve /d "Mesh Drive" /f | Out-Null;',
+                'try{(New-Object -ComObject Shell.Application).NameSpace("$($l):\\").Self.Name="Mesh Drive"}catch{};',
+                'explorer "$($l):\\"',
+                '};',
+                'break',
+                '}',
+                '}'
+            ].join('');
         }
-        var msg = 'Endereço do Mesh Drive copiado.\n\nCole este endereço na barra do Windows Explorer para abrir seus arquivos:\n\n' + address;
+        if (os === 'linux') {
+            return 'URL="davs://' + host.replace(/"/g, '') + '/drive/"; if command -v gio >/dev/null 2>&1; then gio mount "$URL"; fi; if command -v xdg-open >/dev/null 2>&1; then xdg-open "$URL"; else echo "$URL"; fi';
+        }
+        if (os === 'macos') {
+            return 'open "davs://' + host.replace(/"/g, '') + '/drive/"';
+        }
+        return 'https://' + host.replace(/"/g, '') + '/drive/';
+    }
+    function meshDriveCopyText(text, successMessage, fallbackTitle) {
         if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(address).then(function() { alert(msg); }, function() { prompt('Copie o endereço abaixo:', address); });
+            navigator.clipboard.writeText(text).then(function() { alert(successMessage); }, function() { prompt(fallbackTitle || successMessage, text); });
         } else {
-            prompt('Copie o endereço abaixo:', address);
+            prompt(fallbackTitle || successMessage, text);
         }
+    }
+    obj.copyDetectedAddress = function() {
+        var host = window.location.hostname || window.location.host || 'localhost';
+        var os = meshDriveDetectedOs();
+        var address = meshDriveAddressForOs(host, os);
+        var where = (os === 'windows') ? 'Windows Explorer' : ((os === 'linux') ? 'gerenciador de arquivos do Linux' : ((os === 'macos') ? 'Finder' : 'navegador'));
+        var msg = 'Endereço do Mesh Drive copiado.\n\nCole este endereço no ' + where + ' para abrir seus arquivos:\n\n' + address;
+        meshDriveCopyText(address, msg, 'Copie o endereço abaixo:');
     };
     obj.copyMapCommand = function() {
         var host = window.location.hostname || window.location.host || 'localhost';
-        var command = [
-            '$meshHost="' + host.replace(/"/g, '') + '";',
-            '$path="\\\\$($meshHost)@SSL\\drive";',
-            'foreach($l in "M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"){',
-            'if(-not (Get-PSDrive -Name $l -ErrorAction SilentlyContinue)){',
-            'net use "$($l):" $path;',
-            'if($LASTEXITCODE -eq 0){',
-            '$rk="HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\DriveIcons\\$l\\DefaultLabel";',
-            'reg add $rk /ve /d "Mesh Drive" /f | Out-Null;',
-            'try{(New-Object -ComObject Shell.Application).NameSpace("$($l):\\").Self.Name="Mesh Drive"}catch{};',
-            'explorer "$($l):\\"',
-            '};',
-            'break',
-            '}',
-            '}'
-        ].join('');
-        var msg = 'Comando copiado. Execute no PowerShell ou Terminal do Windows para mapear o Mesh Drive.';
+        var os = meshDriveDetectedOs();
+        var command = meshDriveMapCommandForOs(host, os);
+        var osName = (os === 'windows') ? 'Windows' : ((os === 'linux') ? 'Linux' : ((os === 'macos') ? 'macOS' : 'sistema atual'));
+        var msg = 'Comando copiado para ' + osName + '. Execute no terminal para abrir/mapear o Mesh Drive.';
         var popupText = msg + '\n\n' + command;
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(command).then(function() { alert(popupText); }, function() { prompt(msg, command); });
-        } else {
-            prompt(msg, command);
-        }
+        meshDriveCopyText(command, popupText, msg);
     };
     obj.injectMeshDriveLauncher = function() {
         try {

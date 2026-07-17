@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.1
+- Botões `Mesh Drive` e `Mapear` agora são dinâmicos por sistema operacional.
+- Windows: copia caminho UNC e comando PowerShell para mapear letra de `M:` a `Z:`.
+- Linux: copia URL `davs://` e comando com `gio mount`/`xdg-open`.
+- macOS: copia URL `davs://` e comando `open davs://...`.
+- Popups seguem exibindo explicação e conteúdo copiado.
+
 ## 1.0.0
 - Versão final estável.
 - README atualizado com URL real de instalação do plugin no GitHub.
