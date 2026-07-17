@@ -1,31 +1,30 @@
 # Mesh Drive
 
-Mesh Drive exposes MeshCentral **My Files** through WebDAV at `/drive` and adds device-page actions to open or map Mesh Drive through the selected MeshCentral agent.
+Mesh Drive expõe o **My Files** do MeshCentral via WebDAV em `/drive` e adiciona botões na tela do dispositivo para abrir ou mapear o Mesh Drive usando o agente do MeshCentral.
 
-## Install
+## Instalação
 
-Use this URL in MeshCentral Plugins:
+Use na tela de plugins do MeshCentral:
 
 ```text
 https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/config.json
 ```
 
-## Features
+## Recursos
 
-- WebDAV endpoint: `https://mesh.aplicado.com.br/drive/`
-- My Files quick button: copy Mesh Drive address
-- Device page buttons:
-  - Abrir Drive
-  - Mapear Drive
-- Windows mapping searches the first available drive letter from `M:` to `Z:`.
+- WebDAV: `https://mesh.aplicado.com.br/drive/`
+- Em `Meus Arquivos`: botão para copiar o endereço do Mesh Drive.
+- Na tela do dispositivo: botões `Abrir Drive` e `Mapear Drive` alinhados à direita do título.
+- Windows: `Mapear Drive` procura a primeira letra livre entre `M:` e `Z:`.
+- Linux/macOS: tenta abrir ou montar usando `davs://` / WebDAV.
 
-## Server test
+## Teste WebDAV
 
 ```bash
 curl -k -i -u marcelo -X PROPFIND -H "Depth: 1" https://mesh.aplicado.com.br/drive/
 ```
 
-Expected:
+Esperado:
 
 ```text
 HTTP/1.1 207 Multi-Status
