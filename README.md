@@ -16,26 +16,13 @@ https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/config.json
 - Em `Meus Arquivos`: botão para copiar o endereço do Mesh Drive.
 - Na tela do dispositivo: botões `Abrir Drive` e `Mapear Drive` alinhados à direita do título.
 - Windows: `Mapear Drive` procura a primeira letra livre entre `M:` e `Z:`.
-- Linux/macOS: tenta abrir ou montar usando `davs://` / WebDAV.
 
-## Correção 0.6.4
+## Debug 0.6.5
 
-O módulo do agente agora exporta corretamente:
-
-```javascript
-module.exports = { consoleaction : consoleaction };
-```
-
-Esse formato segue o padrão observado no plugin ScriptTask instalado no MeshCentral.
-
-## Teste WebDAV
-
-```bash
-curl -k -i -u marcelo -X PROPFIND -H "Depth: 1" https://mesh.aplicado.com.br/drive/
-```
-
-Esperado:
+Ao clicar em `Abrir Drive` ou `Mapear Drive`, o console do navegador deve mostrar o payload enviado para o MeshCentral. No servidor, o `journalctl` deve mostrar:
 
 ```text
-HTTP/1.1 207 Multi-Status
+PLUGIN: Mesh Drive serveraction: {...}
 ```
+
+Se esse log não aparecer, o evento ainda não está chegando ao método `obj.serveraction()`.
