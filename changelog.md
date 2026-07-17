@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.1
+- Corrigido erro no frontend: `windowsDrivePath is not defined`.
+- Corrigido erro no frontend: `copyText is not defined`.
+- As funções exportadas `copyDetectedAddress()` e `copyMapCommand()` agora são autocontidas, sem depender de helpers locais que não existem no escopo do navegador.
+
 ## 0.7.0
 - Versão final simplificada.
 - Removidos completamente os botões da tela do dispositivo.

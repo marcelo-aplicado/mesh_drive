@@ -184,26 +184,29 @@ module.exports.meshdrive = function (parent) {
     };
     obj.server_startup = function() { log('loaded for ' + cfg.publicUrl + ', root=' + rootDomain()); };
 
-    function windowsDrivePath() { return String.raw`\\mesh.aplicado.com.br@SSL\drive`; }
-    function mappingCommand() {
-        return '$path="\\\\mesh.aplicado.com.br@SSL\\drive";foreach($l in "M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"){if(-not (Get-PSDrive -Name $l -ErrorAction SilentlyContinue)){net use "$($l):" $path;if($LASTEXITCODE -eq 0){explorer "$($l):\\"};break}}';
-    }
-    function copyText(text, successMessage) {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(function() { alert(successMessage); }, function() { prompt(successMessage, text); });
-        } else {
-            prompt(successMessage, text);
-        }
-    }
     obj.copyDetectedAddress = function() {
         var ua = navigator.userAgent || '';
         var address = 'https://mesh.aplicado.com.br/drive/';
-        if (/Windows/i.test(ua)) address = windowsDrivePath();
-        else if (/Macintosh|Mac OS|Linux/i.test(ua)) address = 'davs://mesh.aplicado.com.br/drive/';
-        copyText(address, 'Endereço do Mesh Drive copiado.');
+        if (/Windows/i.test(ua)) {
+            address = String.raw`\\mesh.aplicado.com.br@SSL\drive`;
+        } else if (/Macintosh|Mac OS|Linux/i.test(ua)) {
+            address = 'davs://mesh.aplicado.com.br/drive/';
+        }
+        var msg = 'Endereço do Mesh Drive copiado.';
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(address).then(function() { alert(msg); }, function() { prompt(msg, address); });
+        } else {
+            prompt(msg, address);
+        }
     };
     obj.copyMapCommand = function() {
-        copyText(mappingCommand(), 'Comando copiado. Execute no PowerShell ou Terminal do Windows para mapear o Mesh Drive.');
+        var command = '$path="\\\\mesh.aplicado.com.br@SSL\\drive";foreach($l in "M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"){if(-not (Get-PSDrive -Name $l -ErrorAction SilentlyContinue)){net use "$($l):" $path;if($LASTEXITCODE -eq 0){explorer "$($l):\\"};break}}';
+        var msg = 'Comando copiado. Execute no PowerShell ou Terminal do Windows para mapear o Mesh Drive.';
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(command).then(function() { alert(msg); }, function() { prompt(msg, command); });
+        } else {
+            prompt(msg, command);
+        }
     };
     obj.injectMeshDriveLauncher = function() {
         try {
