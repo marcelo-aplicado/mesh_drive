@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.2
+- O popup do botão `Mapear` volta a exibir o comando copiado junto com o texto explicativo.
+- O comando de mapeamento tenta definir o rótulo da unidade no Explorer como `Mesh Drive`, para exibição como `Mesh Drive (M:)`, `Mesh Drive (N:)`, etc.
+- Mantida a busca automática pela primeira letra livre de `M:` a `Z:`.
+
 ## 0.7.1
 - Corrigido erro no frontend: `windowsDrivePath is not defined`.
 - Corrigido erro no frontend: `copyText is not defined`.

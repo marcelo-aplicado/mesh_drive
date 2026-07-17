@@ -33,3 +33,8 @@ HTTP/1.1 207 Multi-Status
 ## 0.7.1
 
 Correção de escopo no frontend: os botões `Mesh Drive` e `Mapear` agora executam funções autocontidas, sem depender de helpers locais não exportados.
+
+
+## 0.7.2
+
+O botão `Mapear` exibe no popup o comando copiado e tenta definir o nome da unidade no Explorer como `Mesh Drive`, mantendo a letra selecionada automaticamente entre `M:` e `Z:`.

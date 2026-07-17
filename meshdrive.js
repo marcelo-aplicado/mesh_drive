@@ -200,10 +200,23 @@ module.exports.meshdrive = function (parent) {
         }
     };
     obj.copyMapCommand = function() {
-        var command = '$path="\\\\mesh.aplicado.com.br@SSL\\drive";foreach($l in "M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"){if(-not (Get-PSDrive -Name $l -ErrorAction SilentlyContinue)){net use "$($l):" $path;if($LASTEXITCODE -eq 0){explorer "$($l):\\"};break}}';
+        var command = [
+            '$path="\\\\mesh.aplicado.com.br@SSL\\drive";',
+            'foreach($l in "M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"){',
+            'if(-not (Get-PSDrive -Name $l -ErrorAction SilentlyContinue)){',
+            'net use "$($l):" $path;',
+            'if($LASTEXITCODE -eq 0){',
+            'reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\DriveIcons\\$l\\DefaultLabel" /ve /d "Mesh Drive" /f | Out-Null;',
+            'explorer "$($l):\\"',
+            '};',
+            'break',
+            '}',
+            '}'
+        ].join('');
         var msg = 'Comando copiado. Execute no PowerShell ou Terminal do Windows para mapear o Mesh Drive.';
+        var popupText = msg + '\n\n' + command;
         if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(command).then(function() { alert(msg); }, function() { prompt(msg, command); });
+            navigator.clipboard.writeText(command).then(function() { alert(popupText); }, function() { prompt(msg, command); });
         } else {
             prompt(msg, command);
         }

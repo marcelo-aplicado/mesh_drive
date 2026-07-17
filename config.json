@@ -1,7 +1,7 @@
 {
   "name": "Mesh Drive",
   "shortName": "meshdrive",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "author": "Marcelo Henrique da Silva / Microsoft Copilot",
   "description": "Expose MeshCentral My Files via WebDAV and add My Files shortcuts to copy the Mesh Drive address and mapping command.",
   "hasAdminPanel": false,
