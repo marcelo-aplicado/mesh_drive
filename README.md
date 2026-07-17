@@ -17,21 +17,9 @@ https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/config.json
 - Na tela do dispositivo: botões `Abrir Drive` e `Mapear Drive` alinhados à direita do título.
 - Windows: `Mapear Drive` procura a primeira letra livre entre `M:` e `Z:`.
 
-## Correção 0.6.6
+## Correção 0.6.7
 
-O módulo do agente usa `child_process.execFile()` em vez de `child_process.exec()`, compatível com o runtime do MeshAgent observado no plugin ScriptTask.
-
-## Teste WebDAV
-
-```bash
-curl -k -i -u marcelo -X PROPFIND -H "Depth: 1" https://mesh.aplicado.com.br/drive/
-```
-
-Esperado:
-
-```text
-HTTP/1.1 207 Multi-Status
-```
+O `Mapear Drive` não usa mais PowerShell com `-EncodedCommand`, removendo o erro `unsupported encoding`. O botão `Abrir Drive` em Windows passou a usar `explorer.exe` diretamente.
 
 ## Debug
 

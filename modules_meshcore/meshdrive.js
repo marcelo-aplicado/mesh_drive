@@ -15,6 +15,7 @@ function meshdrive_sendStatus(status, message) {
 
 function meshdrive_runShell(commandText) {
     try {
+        meshdrive_sendStatus('info', 'platform=' + process.platform + '; executing=' + commandText);
         var child;
         if (process.platform === 'win32') {
             child = require('child_process').execFile(process.env['windir'] + '\\system32\\cmd.exe');
@@ -49,33 +50,28 @@ function meshdrive_platform() {
 function meshdrive_openDrive() {
     var p = meshdrive_platform();
     if (p === 'windows') {
-        return meshdrive_runShell('start "" "\\\\mesh.aplicado.com.br@SSL\\drive"');
+        return meshdrive_runShell('explorer.exe "\\\\mesh.aplicado.com.br@SSL\\drive"');
     }
     if (p === 'macos') {
         return meshdrive_runShell('/usr/bin/open "davs://mesh.aplicado.com.br/drive/"');
     }
-    return meshdrive_runShell('xdg-open "davs://mesh.aplicado.com.br/drive/" >/dev/null 2>&1');
+    return meshdrive_runShell('if command -v xdg-open >/dev/null 2>&1; then xdg-open "davs://mesh.aplicado.com.br/drive/" >/dev/null 2>&1; else echo "xdg-open not found"; exit 127; fi');
 }
 
 function meshdrive_mapDrive() {
     var p = meshdrive_platform();
     if (p === 'windows') {
-        var ps = "$target='\\\\mesh.aplicado.com.br@SSL\\drive';" +
-            "$drive=$null;" +
-            "foreach($l in 'M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'){" +
-            "$name=$l+':';" +
-            "if(-not (Get-PSDrive -Name $l -ErrorAction SilentlyContinue)){ $drive=$name; break }" +
-            "};" +
-            "if($drive -eq $null){ exit 22 };" +
-            "cmd /c net use $drive $target /persistent:yes;" +
-            "Start-Process explorer.exe ($drive+'\\');";
-        var encoded = Buffer.from(ps, 'utf16le').toString('base64');
-        return meshdrive_runShell('powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand ' + encoded);
+        var cmd = 'set TARGET=\\\\mesh.aplicado.com.br@SSL\\drive && ' +
+            'for %D in (M N O P Q R S T U V W X Y Z) do ' +
+            '@if not exist %D:\\ ' +
+            '(net use %D: %TARGET% /persistent:yes && explorer.exe %D:\\ && exit /b 0) && ' +
+            'exit /b 22';
+        return meshdrive_runShell(cmd);
     }
     if (p === 'macos') {
         return meshdrive_runShell('mkdir -p "$HOME/MeshDrive" && mount_webdav "https://mesh.aplicado.com.br/drive/" "$HOME/MeshDrive" ; /usr/bin/open "$HOME/MeshDrive"');
     }
-    return meshdrive_runShell('mkdir -p "$HOME/MeshDrive" && mount -t davfs "https://mesh.aplicado.com.br/drive/" "$HOME/MeshDrive" ; xdg-open "$HOME/MeshDrive" >/dev/null 2>&1');
+    return meshdrive_runShell('mkdir -p "$HOME/MeshDrive" && mount -t davfs "https://mesh.aplicado.com.br/drive/" "$HOME/MeshDrive" ; if command -v xdg-open >/dev/null 2>&1; then xdg-open "$HOME/MeshDrive" >/dev/null 2>&1; fi');
 }
 
 function consoleaction(args, rights, sessionid, parent) {
