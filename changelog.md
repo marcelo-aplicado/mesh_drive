@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.4
+- Removido domínio fixo `mesh.aplicado.com.br` do código do frontend.
+- Botões `Mesh Drive` e `Mapear` agora usam automaticamente `window.location.hostname`, ou seja, o hostname atual do servidor MeshCentral.
+- O comando copiado pelo botão `Mapear` agora monta o caminho WebDAV de forma dinâmica: `\\<HOSTNAME>@SSL\drive`.
+- README atualizado com exemplos genéricos usando `<HOSTNAME>`.
+
 ## 0.7.3
 - O popup do botão `Mesh Drive` agora exibe explicação de uso no Explorer e mostra o endereço copiado.
 - Ajustado comando do botão `Mapear` para tentar definir o nome da unidade como `Mesh Drive` usando chave `DriveIcons` e também Shell.Application quando disponível.

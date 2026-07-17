@@ -21,7 +21,7 @@ module.exports.meshdrive = function (parent) {
     var cfg = Object.assign({
         enabled: true,
         route: '/drive',
-        publicUrl: 'https://mesh.aplicado.com.br/drive',
+        publicUrl: null,
         meshFilesRoot: '/opt/meshcentral/meshcentral-files',
         meshDomainFolder: 'domain',
         userFolderPrefix: 'user-',
@@ -160,7 +160,7 @@ module.exports.meshdrive = function (parent) {
                 case 'PUT': if (cfg.readOnly) { res.writeHead(405); return res.end(); } mkdir(path.dirname(fp)); req.pipe(fs.createWriteStream(fp)).on('finish', function() { res.writeHead(201); res.end(); }); break;
                 case 'MKCOL': if (cfg.readOnly) { res.writeHead(405); return res.end(); } if (fs.existsSync(fp)) { res.writeHead(405); return res.end(); } mkdir(fp); res.writeHead(201); res.end(); break;
                 case 'DELETE': if (cfg.readOnly) { res.writeHead(405); return res.end(); } if (!fs.existsSync(fp)) { res.writeHead(404); return res.end(); } fs.rmSync(fp, { recursive: true, force: true }); res.writeHead(204); res.end(); break;
-                case 'MOVE': case 'COPY': { if (cfg.readOnly) { res.writeHead(405); return res.end(); } var dh = req.headers.destination; if (!dh) { res.writeHead(400); return res.end(); } var du = new URL(dh, cfg.publicUrl), dr = decodeURIComponent(du.pathname); if (dr.indexOf(cfg.route) === 0) dr = dr.substring(cfg.route.length) || '/'; var dest = full(u, dr); if (!dest) { res.writeHead(403); return res.end(); } mkdir(path.dirname(dest)); if (req.method.toUpperCase() === 'MOVE') fs.renameSync(fp, dest); else copyRec(fp, dest); res.writeHead(201); res.end(); break; }
+                case 'MOVE': case 'COPY': { if (cfg.readOnly) { res.writeHead(405); return res.end(); } var dh = req.headers.destination; if (!dh) { res.writeHead(400); return res.end(); } var du = new URL(dh, cfg.publicUrl || ('https://' + (req.headers.host || 'localhost') + cfg.route)), dr = decodeURIComponent(du.pathname); if (dr.indexOf(cfg.route) === 0) dr = dr.substring(cfg.route.length) || '/'; var dest = full(u, dr); if (!dest) { res.writeHead(403); return res.end(); } mkdir(path.dirname(dest)); if (req.method.toUpperCase() === 'MOVE') fs.renameSync(fp, dest); else copyRec(fp, dest); res.writeHead(201); res.end(); break; }
                 case 'LOCK': { var token = 'opaquelocktoken:' + crypto.randomUUID(); xml(res, 200, '<?xml version="1.0" encoding="utf-8"?><D:prop xmlns:D="DAV:"><D:lockdiscovery><D:activelock><D:locktype><D:write/></D:locktype><D:lockscope><D:exclusive/></D:lockscope><D:depth>infinity</D:depth><D:owner>Mesh Drive</D:owner><D:timeout>Second-3600</D:timeout><D:locktoken><D:href>' + token + '</D:href></D:locktoken></D:activelock></D:lockdiscovery></D:prop>', { 'Lock-Token': '<' + token + '>' }); break; }
                 case 'UNLOCK': res.writeHead(204); res.end(); break;
                 case 'PROPPATCH': xml(res, 207, '<?xml version="1.0" encoding="utf-8"?><D:multistatus xmlns:D="DAV:"><D:response><D:href>' + x(href(rel)) + '</D:href><D:propstat><D:prop/><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response></D:multistatus>'); break;
@@ -186,11 +186,12 @@ module.exports.meshdrive = function (parent) {
 
     obj.copyDetectedAddress = function() {
         var ua = navigator.userAgent || '';
-        var address = 'https://mesh.aplicado.com.br/drive/';
+        var host = window.location.hostname || window.location.host || 'localhost';
+        var address = 'https://' + host + '/drive/';
         if (/Windows/i.test(ua)) {
-            address = String.raw`\\mesh.aplicado.com.br@SSL\drive`;
+            address = '\\\\' + host + '@SSL\\drive';
         } else if (/Macintosh|Mac OS|Linux/i.test(ua)) {
-            address = 'davs://mesh.aplicado.com.br/drive/';
+            address = 'davs://' + host + '/drive/';
         }
         var msg = 'Endereço do Mesh Drive copiado.\n\nCole este endereço na barra do Windows Explorer para abrir seus arquivos:\n\n' + address;
         if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -200,8 +201,10 @@ module.exports.meshdrive = function (parent) {
         }
     };
     obj.copyMapCommand = function() {
+        var host = window.location.hostname || window.location.host || 'localhost';
         var command = [
-            '$path="\\\\mesh.aplicado.com.br@SSL\\drive";',
+            '$meshHost="' + host.replace(/"/g, '') + '";',
+            '$path="\\\\$($meshHost)@SSL\\drive";',
             'foreach($l in "M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"){',
             'if(-not (Get-PSDrive -Name $l -ErrorAction SilentlyContinue)){',
             'net use "$($l):" $path;',
