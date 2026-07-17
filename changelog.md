@@ -1,52 +1,8 @@
 # Changelog
 
-## 0.5.6
-- Rebuild package to avoid version/cache ambiguity after v0.5.5.
-- Keeps the v0.5.5 layout: Mesh Drive buttons aligned to the right of the My Files / Meus Arquivos title.
-- Confirmed `config.json` version is `0.5.6` inside the ZIP package.
-
-## 0.5.5
-- Alinhados os botões rápidos do Mesh Drive à direita da linha do título `Meus Arquivos` / `My Files`.
-- O título permanece à esquerda e o grupo de ações fica encostado à direita usando um contêiner flex com largura total.
-- Mantido fallback compacto caso o título não seja encontrado.
-
-## 0.5.4
-- Moved the quick action buttons from the separate Mesh Drive card to the same line as the My Files / Meus Arquivos title.
-- The inline title buttons are: Download link, Copy address, and All options.
-- Kept OS detection only on button click, preserving the v0.5.3 render safety behavior.
-- Added a fallback compact card only if the My Files title cannot be found.
-
-## 0.5.3
-- Removed `getDetectedInfo()` from the card rendering path.
-- Card rendering is now static and always shows three quick actions: Download link, Copy address, and All options.
-- OS detection now runs only when the user clicks Download link or Copy address.
-- This avoids JavaScript render failures on MeshCentral 1.2.1.
-
-## 0.5.2
-- Card integrado ao My Files atualizado com três ações rápidas: baixar link, copiar endereço e abrir todas as opções.
-- A ação de baixar link detecta o sistema operacional e baixa `.url` no Windows, `.desktop` no Linux ou `.webloc` no macOS.
-- A ação de copiar endereço detecta o sistema operacional e copia o endereço correto para Windows, Linux ou macOS.
-- Adicionados endpoints para gerar atalhos: `/meshdrive/scripts/windows-link.url`, `/meshdrive/scripts/linux-link.desktop` e `/meshdrive/scripts/macos-link.webloc`.
-
-## 0.5.1
-- Corrigido o botão de copiar caminho Windows, preservando corretamente as barras invertidas.
-- Adicionada função `jsLiteral()` para inserir caminhos em JavaScript com escape seguro.
-- Ajustados botões de copiar e comandos para retornar exatamente `\\mesh.aplicado.com.br@SSL\drive`.
-
-## 0.5.0
-- Adicionada página de lançamento em `/meshdrive/launcher`.
-- Adicionados botões e instruções para abrir ou mapear o Mesh Drive no Windows, Linux e macOS.
-- Adicionada detecção de sistema operacional pelo navegador.
-- Adicionado botão/atalho visual `Mesh Drive` na interface web do MeshCentral, com tentativa de integração na área de My Files e fallback em Account Actions.
-- Adicionados downloads dinâmicos de scripts para Windows, Linux e macOS.
-
-## 0.4.2
-- Removida a dependência direta de `pass.js` para validação de senha.
-- A validação agora usa `crypto.pbkdf2` diretamente com SHA384 e 12000 iterações.
-- Corrige o crash `TypeError: fn is not a function` nas linhas 31 ou 43 do `pass.js`.
-
-## 0.4.0
-- Ajustado para instalação via GitHub pelo Plugin Manager do MeshCentral.
-- `shortName` alterado para `meshdrive`, sem underscore.
-- Arquivo principal alterado para `meshdrive.js`.
-- Endpoint padrão mantido como `/drive`.
+## 0.6.0
+- Added device-page actions: **Abrir Drive** and **Mapear Drive**.
+- Added agent-side module under `modules_meshcore/meshdrive.js`.
+- Windows mapping checks free letters from `M:` through `Z:` before mapping.
+- My Files now keeps only one quick action: **Copiar endereço Mesh Drive**.
+- WebDAV endpoint remains `/drive`.

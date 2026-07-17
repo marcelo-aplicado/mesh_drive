@@ -1,383 +1,46 @@
-/**
- * @description Mesh Drive plugin for MeshCentral
- * @author Marcelo Henrique da Silva / Microsoft Copilot
- * @license MIT
- */
 "use strict";
-
 module.exports.meshdrive = function (parent) {
-    var fs = require('fs');
-    var path = require('path');
-    var crypto = require('crypto');
-
-    var obj = {};
-    obj.parent = parent;
-    obj.meshServer = parent.parent;
-    obj.debug = obj.meshServer.debug;
-    obj.exports = [
-        'onWebUIStartupEnd',
-        'goPageEnd',
-        'openLauncher',
-        'downloadDetectedLink',
-        'copyDetectedAddress',
-        'injectMeshDriveLauncher'
-    ];
-
+    var fs = require('fs'), path = require('path'), crypto = require('crypto');
+    var obj = {}; obj.parent = parent; obj.meshServer = parent.parent; obj.debug = obj.meshServer.debug;
+    obj.exports = ['onWebUIStartupEnd','goPageEnd','onDeviceRefreshEnd','copyDetectedAddress','injectMeshDriveLauncher','injectDeviceMeshDrive','openDriveOnAgent','mapDriveOnAgent'];
     var settings = ((obj.meshServer || {}).config || {}).settings || {};
-    var cfg = Object.assign({
-        enabled: true,
-        route: '/drive',
-        launcherRoute: '/meshdrive',
-        publicUrl: 'https://mesh.aplicado.com.br/drive',
-        launcherUrl: 'https://mesh.aplicado.com.br/meshdrive/launcher',
-        meshFilesRoot: '/opt/meshcentral/meshcentral-files',
-        meshDomainFolder: 'domain',
-        userFolderPrefix: 'user-',
-        defaultUserSubFolder: '',
-        readOnly: false,
-        allowPublic: false,
-        debugAuth: false,
-        passwordIterations: 12000
-    }, settings.meshDrive || settings.meshdrive || {});
-
-    function log(msg) { try { obj.debug('PLUGIN', 'Mesh Drive', msg); } catch (e) {} try { console.log('PLUGIN: Mesh Drive: ' + msg); } catch (e) {} }
-    function safeSegment(v) { return String(v || '').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 160) || '_'; }
-    function ensureDir(d) { fs.mkdirSync(d, { recursive: true }); }
-    function normalizeUsername(username) {
-        var u = String(username || '').trim();
-        if (u.indexOf('\\') >= 0) u = u.split('\\').pop();
-        if (u.indexOf('/') >= 0) u = u.split('/').pop();
-        if (u.indexOf('@') >= 0) u = u.split('@')[0];
-        if (u.toLowerCase().indexOf('user-') === 0) u = u.substring(5);
-        return safeSegment(u.toLowerCase());
-    }
-    function parseBasicAuth(req) {
-        var h = req.headers.authorization || '';
-        if (h.toLowerCase().indexOf('basic ') !== 0) return null;
-        var raw = '';
-        try { raw = Buffer.from(h.substring(6), 'base64').toString('utf8'); } catch (e) { return null; }
-        var i = raw.indexOf(':');
-        if (i < 0) return null;
-        return { username: raw.substring(0, i), password: raw.substring(i + 1) };
-    }
-    function getDb() { return obj.meshServer && (obj.meshServer.db || (obj.meshServer.webserver && obj.meshServer.webserver.db)); }
-    function dbGet(id) {
-        return new Promise(function(resolve) {
-            var db = getDb();
-            if (!db || typeof db.Get !== 'function') return resolve(null);
-            try {
-                db.Get(id, function(err, docs) {
-                    if (err) return resolve(null);
-                    if (Array.isArray(docs)) return resolve(docs[0] || null);
-                    return resolve(docs || null);
-                });
-            } catch (e) { resolve(null); }
-        });
-    }
-    function timingSafeEquals(a, b) {
-        a = String(a || ''); b = String(b || '');
-        var ab = Buffer.from(a); var bb = Buffer.from(b);
-        if (ab.length !== bb.length) return false;
-        try { return crypto.timingSafeEqual(ab, bb); } catch (e) { return false; }
-    }
-    function getHashByteLength(storedHash) {
-        try {
-            var b = Buffer.from(String(storedHash || ''), 'base64');
-            if (b && b.length > 0) return b.length;
-        } catch (e) {}
-        return 64;
-    }
-    function pbkdf2Hash(password, salt, storedHash) {
-        return new Promise(function(resolve) {
-            try {
-                var keyLen = getHashByteLength(storedHash);
-                crypto.pbkdf2(password, salt, cfg.passwordIterations, keyLen, 'sha384', function(err, hash) {
-                    if (err) { log('pbkdf2 error: ' + err); return resolve(null); }
-                    resolve(hash.toString('base64'));
-                });
-            } catch (e) { log('pbkdf2 exception: ' + (e && e.stack ? e.stack : e)); resolve(null); }
-        });
-    }
-    async function findLocalUser(username) {
-        var u = normalizeUsername(username);
-        var candidates = ['user//' + u, 'user/' + cfg.meshDomainFolder + '/' + u, 'user//user-' + u, 'user/' + cfg.meshDomainFolder + '/user-' + u];
-        for (var i = 0; i < candidates.length; i++) { var doc = await dbGet(candidates[i]); if (doc) return { id: candidates[i], doc: doc, username: u }; }
-        return { id: 'user//' + u, doc: null, username: u };
-    }
-    async function validateLocalUser(username, password) {
-        if (cfg.allowPublic === true) return { id: 'public', username: 'public' };
-        var found = await findLocalUser(username), userDoc = found.doc;
-        if (!userDoc) { if (cfg.debugAuth) log('user not found: ' + username); return null; }
-        if (userDoc.locked || userDoc.siteadmin === -1) return null;
-        var salt = userDoc.salt;
-        var stored = userDoc.hash || userDoc.passhash || userDoc.pwhash || userDoc.passwordhash;
-        if (!salt || !stored) { if (cfg.debugAuth) log('user has no local password hash: ' + found.username); return null; }
-        var computed = await pbkdf2Hash(password, salt, stored);
-        if (!computed) { if (cfg.debugAuth) log('could not compute password hash'); return null; }
-        var ok = timingSafeEquals(stored, computed) || timingSafeEquals(String(stored).toLowerCase(), String(computed).toLowerCase());
-        if (!ok) { if (cfg.debugAuth) log('invalid password for: ' + found.username); return null; }
-        return { id: userDoc._id || found.id, username: found.username, doc: userDoc };
-    }
-    function sendAuth(res) { res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Mesh Drive"', 'Content-Type': 'text/plain; charset=utf-8' }); res.end('Authentication required'); }
-    async function authenticate(req, res) {
-        var basic = parseBasicAuth(req);
-        if (!basic && cfg.allowPublic !== true) { sendAuth(res); return null; }
-        var user = await validateLocalUser(basic ? basic.username : 'public', basic ? basic.password : '');
-        if (!user) { sendAuth(res); return null; }
-        return user;
-    }
-    function nativeDomainRoot() { return path.resolve(path.join(cfg.meshFilesRoot, cfg.meshDomainFolder)); }
-    function userRoot(user) {
-        var root = path.join(nativeDomainRoot(), cfg.userFolderPrefix + normalizeUsername(user.username || user.id || 'user'));
-        if (cfg.defaultUserSubFolder) root = path.join(root, safeSegment(cfg.defaultUserSubFolder));
-        ensureDir(root); return path.resolve(root);
-    }
-    function requestPath(req) {
-        var u = req.url || '/', q = u.indexOf('?'); if (q >= 0) u = u.substring(0, q);
-        try { u = decodeURIComponent(u); } catch (e) {}
-        if (u.indexOf(cfg.route) === 0) u = u.substring(cfg.route.length);
-        if (u.indexOf('/') !== 0) u = '/' + u; return u;
-    }
-    function fullPath(user, rel) {
-        var root = userRoot(user), clean = path.normalize('/' + rel).replace(/^([/\\])+/, ''), p = path.resolve(path.join(root, clean));
-        if (p !== root && p.indexOf(root + path.sep) !== 0) return null;
-        return p;
-    }
-    function externalHref(rel) { var r = rel || '/'; if (r.indexOf('/') !== 0) r = '/' + r; return cfg.route.replace(/\/$/, '') + encodeURI(r).replace(/#/g, '%23'); }
-    function xmlEscape(s) { return String(s).replace(/[<>&'"]/g, function(c) { return {'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;'}[c]; }); }
-    function propResponse(f, rel) {
-        var st = fs.statSync(f), isDir = st.isDirectory(), display = path.basename(f) || '/', href = externalHref(rel + (isDir && !rel.endsWith('/') ? '/' : ''));
-        return '<D:response><D:href>' + xmlEscape(href) + '</D:href><D:propstat><D:prop><D:displayname>' + xmlEscape(display) + '</D:displayname><D:getlastmodified>' + st.mtime.toUTCString() + '</D:getlastmodified><D:creationdate>' + st.birthtime.toISOString() + '</D:creationdate>' + (isDir ? '<D:resourcetype><D:collection/></D:resourcetype>' : '<D:resourcetype/>') + (!isDir ? '<D:getcontentlength>' + st.size + '</D:getcontentlength>' : '') + '<D:getetag>"' + st.size + '-' + Number(st.mtimeMs).toString(16) + '"</D:getetag></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response>';
-    }
-    function sendXml(res, code, body, headers) { res.writeHead(code, Object.assign({ 'Content-Type': 'application/xml; charset=utf-8' }, headers || {})); res.end(body); }
-    function methodNotAllowed(res) { res.writeHead(405); res.end(); }
-    function copyRecursive(src, dest) { var st = fs.statSync(src); if (st.isDirectory()) { ensureDir(dest); fs.readdirSync(src).forEach(function(f) { copyRecursive(path.join(src, f), path.join(dest, f)); }); } else { fs.copyFileSync(src, dest); } }
-
-    async function davHandler(req, res) {
-        var user = await authenticate(req, res); if (!user) return;
-        var rel = requestPath(req), fp = fullPath(user, rel); if (!fp) { res.writeHead(403); res.end(); return; }
-        try {
-            switch ((req.method || 'GET').toUpperCase()) {
-                case 'OPTIONS': res.writeHead(200, { 'DAV': '1, 2', 'Allow': 'OPTIONS, PROPFIND, GET, HEAD, PUT, DELETE, MKCOL, MOVE, COPY, LOCK, UNLOCK, PROPPATCH', 'MS-Author-Via': 'DAV' }); res.end(); break;
-                case 'PROPFIND': { if (!fs.existsSync(fp)) { res.writeHead(404); res.end(); return; } var depth = req.headers.depth || '1', responses = propResponse(fp, rel), stat = fs.statSync(fp); if (depth !== '0' && stat.isDirectory()) { fs.readdirSync(fp).forEach(function(name) { responses += propResponse(path.join(fp, name), path.posix.join(rel, name)); }); } sendXml(res, 207, '<?xml version="1.0" encoding="utf-8"?><D:multistatus xmlns:D="DAV:">' + responses + '</D:multistatus>'); break; }
-                case 'GET': case 'HEAD': { if (!fs.existsSync(fp)) { res.writeHead(404); res.end(); return; } var st = fs.statSync(fp); if (st.isDirectory()) { res.writeHead(403); res.end(); return; } res.writeHead(200, { 'Content-Length': st.size }); if (req.method.toUpperCase() === 'HEAD') res.end(); else fs.createReadStream(fp).pipe(res); break; }
-                case 'PUT': if (cfg.readOnly) return methodNotAllowed(res); ensureDir(path.dirname(fp)); req.pipe(fs.createWriteStream(fp)).on('finish', function() { res.writeHead(201); res.end(); }).on('error', function() { res.writeHead(500); res.end(); }); break;
-                case 'MKCOL': if (cfg.readOnly) return methodNotAllowed(res); if (fs.existsSync(fp)) { res.writeHead(405); res.end(); return; } ensureDir(fp); res.writeHead(201); res.end(); break;
-                case 'DELETE': if (cfg.readOnly) return methodNotAllowed(res); if (!fs.existsSync(fp)) { res.writeHead(404); res.end(); return; } fs.rmSync(fp, { recursive: true, force: true }); res.writeHead(204); res.end(); break;
-                case 'MOVE': case 'COPY': { if (cfg.readOnly) return methodNotAllowed(res); if (!fs.existsSync(fp)) { res.writeHead(404); res.end(); return; } var destHeader = req.headers.destination; if (!destHeader) { res.writeHead(400); res.end(); return; } var destUrl = new URL(destHeader, cfg.publicUrl), destRel = decodeURIComponent(destUrl.pathname); if (destRel.indexOf(cfg.route) === 0) destRel = destRel.substring(cfg.route.length) || '/'; var dest = fullPath(user, destRel); if (!dest) { res.writeHead(403); res.end(); return; } ensureDir(path.dirname(dest)); if (req.method.toUpperCase() === 'MOVE') fs.renameSync(fp, dest); else copyRecursive(fp, dest); res.writeHead(201); res.end(); break; }
-                case 'LOCK': { var token = 'opaquelocktoken:' + crypto.randomUUID(); sendXml(res, 200, '<?xml version="1.0" encoding="utf-8"?><D:prop xmlns:D="DAV:"><D:lockdiscovery><D:activelock><D:locktype><D:write/></D:locktype><D:lockscope><D:exclusive/></D:lockscope><D:depth>infinity</D:depth><D:owner>Mesh Drive</D:owner><D:timeout>Second-3600</D:timeout><D:locktoken><D:href>' + token + '</D:href></D:locktoken></D:activelock></D:lockdiscovery></D:prop>', { 'Lock-Token': '<' + token + '>' }); break; }
-                case 'UNLOCK': res.writeHead(204); res.end(); break;
-                case 'PROPPATCH': sendXml(res, 207, '<?xml version="1.0" encoding="utf-8"?><D:multistatus xmlns:D="DAV:"><D:response><D:href>' + xmlEscape(externalHref(rel)) + '</D:href><D:propstat><D:prop/><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response></D:multistatus>'); break;
-                default: methodNotAllowed(res);
-            }
-        } catch (e) { log('handler error: ' + (e && e.stack ? e.stack : e)); try { res.writeHead(500); res.end(); } catch (ex) {} }
-    }
-
-    function htmlEscape(s) { return String(s).replace(/[<>&'"]/g, function(c) { return {'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&#39;','"':'&quot;'}[c]; }); }
-    function sendText(res, name, content, contentType) {
-        res.writeHead(200, { 'Content-Type': contentType || 'text/plain; charset=utf-8', 'Content-Disposition': 'attachment; filename="' + name + '"' });
-        res.end(content);
-    }
-    function jsLiteral(s) { return JSON.stringify(String(s || '')); }
-    function launcherHtml() {
-        var webdavUrl = cfg.publicUrl.replace(/\/$/, '/') ;
-        var host = webdavUrl.replace(/^https:\/\//, '').replace(/\/drive\/?$/, '');
-        var winUnc = '\\\\' + host + '@SSL\\drive';
-        var winDavRoot = '\\\\' + host + '@SSL\\DavWWWRoot\\drive';
-        var davsUrl = 'davs://' + host + '/drive/';
-        var winMapCmd = 'net use M: ' + winUnc + ' /user:%USERNAME% * /persistent:yes';
-        var fileUrl = 'file:///' + winUnc.replace(/\\/g, '/');
-        return `<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mesh Drive</title>
-<style>
-body{font-family:Segoe UI,Arial,sans-serif;background:#f4f7fb;margin:0;color:#1f2937}.wrap{max-width:1050px;margin:0 auto;padding:32px}.hero{background:#fff;border:1px solid #dbe3ef;border-radius:18px;padding:28px;box-shadow:0 10px 25px rgba(15,23,42,.08)}h1{margin:0 0 8px;font-size:32px}.muted{color:#667085}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:20px}.card{background:#fff;border:1px solid #dbe3ef;border-radius:16px;padding:20px}.card.reco{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12)}.badge{display:inline-block;background:#e0ecff;color:#1d4ed8;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}.btn{display:inline-block;background:#2563eb;color:#fff;text-decoration:none;border:0;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer}.btn.secondary{background:#eef2f7;color:#1f2937}.btn.green{background:#16803c}code,pre{background:#0f172a;color:#e5e7eb;border-radius:8px;padding:10px;display:block;white-space:pre-wrap;overflow:auto}.small{font-size:13px}.ok{color:#16803c;font-weight:600}.warn{color:#b45309}
-</style>
-</head>
-<body>
-<div class="wrap">
-  <div class="hero">
-    <span class="badge">Mesh Drive</span>
-    <h1>Abrir ou mapear seus arquivos</h1>
-    <p class="muted">O sistema detecta seu sistema operacional e mostra a melhor opção. Seus arquivos são acessados via WebDAV em <b>${htmlEscape(webdavUrl)}</b>.</p>
-    <p id="detected" class="ok">Detectando sistema...</p>
-    <div class="actions">
-      <button class="btn" onclick='copyText(${jsLiteral(webdavUrl)})'>Copiar URL WebDAV</button>
-      <button class="btn secondary" onclick='copyText(${jsLiteral(winUnc)})'>Copiar caminho Windows</button>
-    </div>
-  </div>
-  <div class="cards">
-    <div class="card" id="card-windows">
-      <span class="badge">Windows</span>
-      <h2>Abrir no Explorer</h2>
-      <p class="small">Caminho validado no Windows Explorer. Se o navegador bloquear a abertura direta, copie e cole o caminho abaixo na barra do Explorer.</p>
-      <code>${htmlEscape(winUnc)}</code>
-      <div class="actions">
-        <a class="btn" href="${htmlEscape(fileUrl)}">Tentar abrir</a>
-        <button class="btn secondary" onclick='copyText(${jsLiteral(winUnc)})'>Copiar caminho</button>
-      </div>
-      <h3>Mapear unidade</h3>
-      <code>${htmlEscape(winMapCmd)}</code>
-      <div class="actions">
-        <a class="btn green" href="/meshdrive/scripts/windows-map.cmd">Baixar .CMD</a>
-        <button class="btn secondary" onclick='copyText(${jsLiteral(winMapCmd)})'>Copiar comando</button>
-      </div>
-      <p class="small">Alternativa compatível:</p>
-      <code>${htmlEscape(winDavRoot)}</code>
-      <div class="actions"><button class="btn secondary" onclick='copyText(${jsLiteral(winDavRoot)})'>Copiar alternativa</button></div>
-    </div>
-    <div class="card" id="card-linux">
-      <span class="badge">Linux</span>
-      <h2>Abrir no gerenciador de arquivos</h2>
-      <code>${htmlEscape(davsUrl)}</code>
-      <div class="actions"><a class="btn" href="${htmlEscape(davsUrl)}">Tentar abrir</a><button class="btn secondary" onclick='copyText(${jsLiteral(davsUrl)})'>Copiar</button></div>
-      <h3>Montar com davfs2</h3>
-      <code>mkdir -p ~/MeshDrive\nsudo mount -t davfs ${htmlEscape(webdavUrl)} ~/MeshDrive</code>
-      <div class="actions"><a class="btn green" href="/meshdrive/scripts/linux-map.sh">Baixar .SH</a></div>
-    </div>
-    <div class="card" id="card-macos">
-      <span class="badge">macOS</span>
-      <h2>Abrir no Finder</h2>
-      <code>${htmlEscape(davsUrl)}</code>
-      <div class="actions"><a class="btn" href="${htmlEscape(davsUrl)}">Tentar abrir</a><button class="btn secondary" onclick='copyText(${jsLiteral(davsUrl)})'>Copiar</button></div>
-      <h3>Montar via terminal</h3>
-      <code>mkdir -p ~/MeshDrive\nmount_webdav ${htmlEscape(webdavUrl)} ~/MeshDrive</code>
-      <div class="actions"><a class="btn green" href="/meshdrive/scripts/macos-map.sh">Baixar .SH</a></div>
-    </div>
-  </div>
-</div>
-<script>
-function copyText(t){navigator.clipboard.writeText(t).then(function(){alert('Copiado: '+t);},function(){prompt('Copie o texto abaixo:',t);});}
-var ua=navigator.userAgent||'';var os='Sistema não identificado';var id='';
-if(/Windows/i.test(ua)){os='Windows';id='card-windows';}else if(/Macintosh|Mac OS/i.test(ua)){os='macOS';id='card-macos';}else if(/Linux/i.test(ua)){os='Linux';id='card-linux';}
-document.getElementById('detected').innerText='Sistema detectado: '+os;if(id){document.getElementById(id).classList.add('reco');}
-</script>
-</body>
-</html>`;
-    }
-    function launcherHandler(req, res) {
-        var url = req.url || '';
-        if (url.indexOf('/scripts/windows-link.url') >= 0) {
-            var shortcut = '[InternetShortcut]\r\nURL=file://\\\\mesh.aplicado.com.br@SSL\\drive\r\nIconFile=explorer.exe\r\nIconIndex=0\r\n';
-            return sendText(res, 'MeshDrive.url', shortcut, 'application/octet-stream');
-        }
-        if (url.indexOf('/scripts/linux-link.desktop') >= 0) {
-            var desktop = '[Desktop Entry]\nType=Link\nName=Mesh Drive\nURL=davs://mesh.aplicado.com.br/drive/\nIcon=folder-remote\n';
-            return sendText(res, 'mesh-drive.desktop', desktop, 'application/octet-stream');
-        }
-        if (url.indexOf('/scripts/macos-link.webloc') >= 0) {
-            var webloc = '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n  <key>URL</key>\n  <string>davs://mesh.aplicado.com.br/drive/</string>\n</dict>\n</plist>\n';
-            return sendText(res, 'MeshDrive.webloc', webloc, 'application/octet-stream');
-        }
-        if (url.indexOf('/scripts/windows-map.cmd') >= 0) {
-            var win = '@echo off\r\nset DRIVE=M:\r\nset TARGET=\\\\mesh.aplicado.com.br@SSL\\drive\r\necho Mapping Mesh Drive to %DRIVE%\r\nnet use %DRIVE% /delete /y >nul 2>nul\r\nnet use %DRIVE% %TARGET% /persistent:yes\r\nif errorlevel 1 pause\r\nexplorer %DRIVE%\r\n';
-            return sendText(res, 'MapMeshDrive.cmd', win, 'application/octet-stream');
-        }
-        if (url.indexOf('/scripts/linux-map.sh') >= 0) {
-            var lin = '#!/bin/sh\nmkdir -p "$HOME/MeshDrive"\necho "Mounting Mesh Drive in $HOME/MeshDrive"\nsudo mount -t davfs https://mesh.aplicado.com.br/drive/ "$HOME/MeshDrive"\nxdg-open "$HOME/MeshDrive" >/dev/null 2>&1 &\n';
-            return sendText(res, 'map-mesh-drive-linux.sh', lin, 'application/x-sh; charset=utf-8');
-        }
-        if (url.indexOf('/scripts/macos-map.sh') >= 0) {
-            var mac = '#!/bin/sh\nmkdir -p "$HOME/MeshDrive"\necho "Mounting Mesh Drive in $HOME/MeshDrive"\nmount_webdav https://mesh.aplicado.com.br/drive/ "$HOME/MeshDrive"\nopen "$HOME/MeshDrive"\n';
-            return sendText(res, 'map-mesh-drive-macos.sh', mac, 'application/x-sh; charset=utf-8');
-        }
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(launcherHtml());
-    }
-    function findApp() { var c = [obj.meshServer && obj.meshServer.webserver && obj.meshServer.webserver.app, obj.meshServer && obj.meshServer.app, parent && parent.app, parent && parent.webserver && parent.webserver.app]; for (var i = 0; i < c.length; i++) if (c[i] && typeof c[i].use === 'function') return c[i]; return null; }
-
-    obj.hook_setupHttpHandlers = function() {
-        if (cfg.enabled === false) { log('disabled'); return; }
-        var app = findApp();
-        if (!app) { log('Express app not found; cannot register routes'); return; }
-        ensureDir(nativeDomainRoot());
-        app.use(cfg.route, function(req, res) { davHandler(req, res); });
-        app.use(cfg.launcherRoute, function(req, res) { launcherHandler(req, res); });
-        log('registered route ' + cfg.route + ' -> ' + nativeDomainRoot() + '/' + cfg.userFolderPrefix + '<username>');
-        log('registered launcher route ' + cfg.launcherRoute + '/launcher');
-    };
-    obj.server_startup = function() { log('loaded for ' + cfg.publicUrl + ', root=' + nativeDomainRoot()); };
-
-    /* Browser-side helpers exported to MeshCentral Web UI */
-    obj.openLauncher = function() { window.open('/meshdrive/launcher', '_blank'); };
-    obj.downloadDetectedLink = function() {
-        var ua = navigator.userAgent || '';
-        if (/Windows/i.test(ua)) { window.location.href = '/meshdrive/scripts/windows-link.url'; return; }
-        if (/Macintosh|Mac OS/i.test(ua)) { window.location.href = '/meshdrive/scripts/macos-link.webloc'; return; }
-        if (/Linux/i.test(ua)) { window.location.href = '/meshdrive/scripts/linux-link.desktop'; return; }
-        window.location.href = '/meshdrive/launcher';
-    };
-    obj.copyDetectedAddress = function() {
-        var ua = navigator.userAgent || '';
-        var address = 'https://mesh.aplicado.com.br/drive/';
-        if (/Windows/i.test(ua)) {
-            address = String.raw`\\mesh.aplicado.com.br@SSL\drive`;
-        } else if (/Macintosh|Mac OS/i.test(ua)) {
-            address = 'davs://mesh.aplicado.com.br/drive/';
-        } else if (/Linux/i.test(ua)) {
-            address = 'davs://mesh.aplicado.com.br/drive/';
-        }
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(address).then(function() {
-                alert('Endereco copiado:\n\n' + address);
-            }, function() {
-                prompt('Copie o endereco abaixo:', address);
-            });
-        } else {
-            prompt('Copie o endereco abaixo:', address);
-        }
-    };
-    obj.injectMeshDriveLauncher = function() {
-        try {
-            if (document.getElementById('plugin_meshDriveLauncher')) return;
-
-            var buttonGroup = '<span id="plugin_meshDriveLauncher" style="display:inline-flex;align-items:center;gap:6px;margin-left:auto;vertical-align:middle;font-size:13px;font-weight:400;white-space:nowrap;">' +
-                '<span style="font-size:13px;font-weight:600;color:#24292f;">&#128193; Mesh Drive</span>' +
-                '<button onclick="pluginHandler.meshdrive.downloadDetectedLink();" style="padding:5px 9px;border-radius:6px;border:1px solid #1f6feb;background:#1f6feb;color:white;cursor:pointer;font-size:12px;line-height:16px;">Baixar link</button>' +
-                '<button onclick="pluginHandler.meshdrive.copyDetectedAddress();" style="padding:5px 9px;border-radius:6px;border:1px solid #57606a;background:#f6f8fa;color:#24292f;cursor:pointer;font-size:12px;line-height:16px;">Copiar endereco</button>' +
-                '<button onclick="pluginHandler.meshdrive.openLauncher();" style="padding:5px 9px;border-radius:6px;border:1px solid #16803c;background:#16803c;color:white;cursor:pointer;font-size:12px;line-height:16px;">Todas as opcoes</button>' +
-                '</span>';
-
-            var title = null;
-            var headings = document.querySelectorAll('h1,h2,h3,div,span');
-            for (var i = 0; i < headings.length; i++) {
-                var text = (headings[i].innerText || headings[i].textContent || '').trim().toLowerCase();
-                if ((text === 'meus arquivos') || (text === 'my files')) { title = headings[i]; break; }
-            }
-
-            if (title) {
-                title.style.display = 'flex';
-                title.style.alignItems = 'center';
-                title.style.flexWrap = 'nowrap';
-                title.style.gap = '8px';
-                title.style.width = '100%';
-                title.insertAdjacentHTML('beforeend', buttonGroup);
-                return;
-            }
-
-            // Fallback: if the page title is not found, show a compact card near the file area.
-            var fallback = '<div id="plugin_meshDriveLauncher" style="margin:10px 0;padding:8px 10px;border:1px solid #d0d7de;border-radius:8px;background:#f6f8fa;max-width:520px;">' +
-                '<div style="font-weight:600;margin-bottom:6px;">&#128193; Mesh Drive</div>' +
-                '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
-                '<button onclick="pluginHandler.meshdrive.downloadDetectedLink();" style="padding:6px 10px;border-radius:6px;border:1px solid #1f6feb;background:#1f6feb;color:white;cursor:pointer;">Baixar link</button>' +
-                '<button onclick="pluginHandler.meshdrive.copyDetectedAddress();" style="padding:6px 10px;border-radius:6px;border:1px solid #57606a;background:#f6f8fa;color:#24292f;cursor:pointer;">Copiar endereco</button>' +
-                '<button onclick="pluginHandler.meshdrive.openLauncher();" style="padding:6px 10px;border-radius:6px;border:1px solid #16803c;background:#16803c;color:white;cursor:pointer;">Todas as opcoes</button>' +
-                '</div></div>';
-
-            var targets = [];
-            var ids = ['p5', 'p13', 'p11', 'p2', 'p3'];
-            for (var j = 0; j < ids.length; j++) { var el = document.getElementById(ids[j]); if (el) targets.push(el); }
-            if (targets.length > 0) { targets[0].insertAdjacentHTML('afterbegin', fallback); return; }
-
-            var account = document.querySelector('#p2AccountActions p.mL');
-            if (account) { account.insertAdjacentHTML('beforeend', '<span id="plugin_meshDriveLauncher" style="display:block"><a onclick="pluginHandler.meshdrive.openLauncher();">&#128193; Mesh Drive</a></span>'); }
-        } catch (e) { console.log('Mesh Drive launcher injection failed', e); }
-    };
-    obj.onWebUIStartupEnd = function() { setTimeout(pluginHandler.meshdrive.injectMeshDriveLauncher, 500); setTimeout(pluginHandler.meshdrive.injectMeshDriveLauncher, 2000); };
-    obj.goPageEnd = function() { setTimeout(pluginHandler.meshdrive.injectMeshDriveLauncher, 300); };
-
+    var cfg = Object.assign({ enabled:true, route:'/drive', publicUrl:'https://mesh.aplicado.com.br/drive', meshFilesRoot:'/opt/meshcentral/meshcentral-files', meshDomainFolder:'domain', userFolderPrefix:'user-', defaultUserSubFolder:'', readOnly:false, allowPublic:false, debugAuth:false, passwordIterations:12000 }, settings.meshDrive || settings.meshdrive || {});
+    function log(m){ try{obj.debug('PLUGIN','Mesh Drive',m);}catch(e){} try{console.log('PLUGIN: Mesh Drive: '+m);}catch(e){} }
+    function safe(v){return String(v||'').replace(/[^a-zA-Z0-9._-]/g,'_').slice(0,160)||'_';}
+    function norm(u){u=String(u||'').trim(); if(u.indexOf('\\')>=0)u=u.split('\\').pop(); if(u.indexOf('/')>=0)u=u.split('/').pop(); if(u.indexOf('@')>=0)u=u.split('@')[0]; if(u.toLowerCase().indexOf('user-')===0)u=u.substring(5); return safe(u.toLowerCase());}
+    function mkdir(d){fs.mkdirSync(d,{recursive:true});}
+    function parseBasic(req){var h=req.headers.authorization||''; if(h.toLowerCase().indexOf('basic ')!==0)return null; var raw=''; try{raw=Buffer.from(h.substring(6),'base64').toString('utf8');}catch(e){return null;} var i=raw.indexOf(':'); if(i<0)return null; return {username:raw.substring(0,i),password:raw.substring(i+1)};}
+    function dbGet(id){return new Promise(function(resolve){var db=obj.meshServer&&(obj.meshServer.db||(obj.meshServer.webserver&&obj.meshServer.webserver.db)); if(!db||typeof db.Get!=='function')return resolve(null); try{db.Get(id,function(err,docs){if(err)return resolve(null); if(Array.isArray(docs))return resolve(docs[0]||null); resolve(docs||null);});}catch(e){resolve(null);}});}
+    function tseq(a,b){a=String(a||'');b=String(b||'');var ab=Buffer.from(a),bb=Buffer.from(b); if(ab.length!==bb.length)return false; try{return crypto.timingSafeEqual(ab,bb);}catch(e){return false;}}
+    function hashLen(h){try{var b=Buffer.from(String(h||''),'base64'); if(b&&b.length>0)return b.length;}catch(e){} return 64;}
+    function pbkdf2(pw,salt,stored){return new Promise(function(resolve){try{crypto.pbkdf2(pw,salt,cfg.passwordIterations,hashLen(stored),'sha384',function(err,h){if(err){log('pbkdf2 error: '+err);return resolve(null);} resolve(h.toString('base64'));});}catch(e){log('pbkdf2 exception: '+e);resolve(null);}});}
+    async function findUser(username){var u=norm(username),c=['user//'+u,'user/'+cfg.meshDomainFolder+'/'+u,'user//user-'+u,'user/'+cfg.meshDomainFolder+'/user-'+u]; for(var i=0;i<c.length;i++){var d=await dbGet(c[i]); if(d)return {id:c[i],doc:d,username:u};} return {id:'user//'+u,doc:null,username:u};}
+    async function validate(username,password){if(cfg.allowPublic===true)return {id:'public',username:'public'}; var f=await findUser(username),d=f.doc; if(!d)return null; if(d.locked||d.siteadmin===-1)return null; var salt=d.salt,stored=d.hash||d.passhash||d.pwhash||d.passwordhash; if(!salt||!stored)return null; var computed=await pbkdf2(password,salt,stored); if(!computed)return null; if(!tseq(stored,computed)&&!tseq(String(stored).toLowerCase(),String(computed).toLowerCase()))return null; return {id:d._id||f.id,username:f.username,doc:d};}
+    function authReq(res){res.writeHead(401,{'WWW-Authenticate':'Basic realm="Mesh Drive"','Content-Type':'text/plain; charset=utf-8'});res.end('Authentication required');}
+    async function auth(req,res){var b=parseBasic(req); if(!b&&cfg.allowPublic!==true){authReq(res);return null;} var u=await validate(b?b.username:'public',b?b.password:''); if(!u){authReq(res);return null;} return u;}
+    function rootDomain(){return path.resolve(path.join(cfg.meshFilesRoot,cfg.meshDomainFolder));}
+    function userRoot(u){var r=path.join(rootDomain(),cfg.userFolderPrefix+norm(u.username||u.id||'user')); if(cfg.defaultUserSubFolder)r=path.join(r,safe(cfg.defaultUserSubFolder)); mkdir(r); return path.resolve(r);}
+    function reqPath(req){var u=req.url||'/';var q=u.indexOf('?'); if(q>=0)u=u.substring(0,q); try{u=decodeURIComponent(u);}catch(e){} if(u.indexOf(cfg.route)===0)u=u.substring(cfg.route.length); if(u.indexOf('/')!==0)u='/'+u; return u;}
+    function full(u,rel){var r=userRoot(u),clean=path.normalize('/'+rel).replace(/^([/\\])+/,'');var p=path.resolve(path.join(r,clean)); if(p!==r&&p.indexOf(r+path.sep)!==0)return null; return p;}
+    function x(s){return String(s).replace(/[<>&'"]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;'}[c];});}
+    function href(rel){var r=rel||'/'; if(r.indexOf('/')!==0)r='/'+r; return cfg.route.replace(/\/$/,'')+encodeURI(r).replace(/#/g,'%23');}
+    function prop(f,rel){var st=fs.statSync(f),isD=st.isDirectory(),display=path.basename(f)||'/'; return '<D:response><D:href>'+x(href(rel+(isD&&!rel.endsWith('/')?'/':'')))+'</D:href><D:propstat><D:prop><D:displayname>'+x(display)+'</D:displayname><D:getlastmodified>'+st.mtime.toUTCString()+'</D:getlastmodified><D:creationdate>'+st.birthtime.toISOString()+'</D:creationdate>'+(isD?'<D:resourcetype><D:collection/></D:resourcetype>':'<D:resourcetype/>')+(!isD?'<D:getcontentlength>'+st.size+'</D:getcontentlength>':'')+'<D:getetag>"'+st.size+'-'+Number(st.mtimeMs).toString(16)+'"</D:getetag></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response>';}
+    function xml(res,code,body,h){res.writeHead(code,Object.assign({'Content-Type':'application/xml; charset=utf-8'},h||{}));res.end(body);}
+    function copyRec(s,d){var st=fs.statSync(s); if(st.isDirectory()){mkdir(d); fs.readdirSync(s).forEach(function(f){copyRec(path.join(s,f),path.join(d,f));});}else{fs.copyFileSync(s,d);}}
+    async function dav(req,res){var u=await auth(req,res); if(!u)return; var rel=reqPath(req),fp=full(u,rel); if(!fp){res.writeHead(403);return res.end();} try{switch((req.method||'GET').toUpperCase()){case 'OPTIONS':res.writeHead(200,{'DAV':'1, 2','Allow':'OPTIONS, PROPFIND, GET, HEAD, PUT, DELETE, MKCOL, MOVE, COPY, LOCK, UNLOCK, PROPPATCH','MS-Author-Via':'DAV'});res.end();break;case 'PROPFIND':{if(!fs.existsSync(fp)){res.writeHead(404);return res.end();}var depth=req.headers.depth||'1',out=prop(fp,rel),st=fs.statSync(fp); if(depth!=='0'&&st.isDirectory())fs.readdirSync(fp).forEach(function(n){out+=prop(path.join(fp,n),path.posix.join(rel,n));}); xml(res,207,'<?xml version="1.0" encoding="utf-8"?><D:multistatus xmlns:D="DAV:">'+out+'</D:multistatus>');break;}case 'GET':case 'HEAD':{if(!fs.existsSync(fp)){res.writeHead(404);return res.end();}var st2=fs.statSync(fp);if(st2.isDirectory()){res.writeHead(403);return res.end();}res.writeHead(200,{'Content-Length':st2.size});if(req.method.toUpperCase()==='HEAD')res.end();else fs.createReadStream(fp).pipe(res);break;}case 'PUT':if(cfg.readOnly){res.writeHead(405);return res.end();}mkdir(path.dirname(fp));req.pipe(fs.createWriteStream(fp)).on('finish',function(){res.writeHead(201);res.end();});break;case 'MKCOL':if(cfg.readOnly){res.writeHead(405);return res.end();}if(fs.existsSync(fp)){res.writeHead(405);return res.end();}mkdir(fp);res.writeHead(201);res.end();break;case 'DELETE':if(cfg.readOnly){res.writeHead(405);return res.end();}if(!fs.existsSync(fp)){res.writeHead(404);return res.end();}fs.rmSync(fp,{recursive:true,force:true});res.writeHead(204);res.end();break;case 'MOVE':case 'COPY':{if(cfg.readOnly){res.writeHead(405);return res.end();}var dh=req.headers.destination;if(!dh){res.writeHead(400);return res.end();}var du=new URL(dh,cfg.publicUrl),dr=decodeURIComponent(du.pathname);if(dr.indexOf(cfg.route)===0)dr=dr.substring(cfg.route.length)||'/';var dest=full(u,dr);if(!dest){res.writeHead(403);return res.end();}mkdir(path.dirname(dest));if(req.method.toUpperCase()==='MOVE')fs.renameSync(fp,dest);else copyRec(fp,dest);res.writeHead(201);res.end();break;}case 'LOCK':{var token='opaquelocktoken:'+crypto.randomUUID();xml(res,200,'<?xml version="1.0" encoding="utf-8"?><D:prop xmlns:D="DAV:"><D:lockdiscovery><D:activelock><D:locktype><D:write/></D:locktype><D:lockscope><D:exclusive/></D:lockscope><D:depth>infinity</D:depth><D:owner>Mesh Drive</D:owner><D:timeout>Second-3600</D:timeout><D:locktoken><D:href>'+token+'</D:href></D:locktoken></D:activelock></D:lockdiscovery></D:prop>',{'Lock-Token':'<'+token+'>'});break;}case 'UNLOCK':res.writeHead(204);res.end();break;case 'PROPPATCH':xml(res,207,'<?xml version="1.0" encoding="utf-8"?><D:multistatus xmlns:D="DAV:"><D:response><D:href>'+x(href(rel))+'</D:href><D:propstat><D:prop/><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response></D:multistatus>');break;default:res.writeHead(405);res.end();}}catch(e){log('handler error: '+(e.stack||e));try{res.writeHead(500);res.end();}catch(ex){}}}
+    function sendAgent(nodeid,action){try{var wsagents=obj.meshServer&&obj.meshServer.webserver&&obj.meshServer.webserver.wsagents;if(!nodeid||!wsagents||!wsagents[nodeid])return false;wsagents[nodeid].send(JSON.stringify({action:'plugin',plugin:'meshdrive',pluginaction:action}));return true;}catch(e){log('sendAgent error: '+(e.stack||e));return false;}}
+    obj.serveraction=function(command,myparent){try{if(!command||command.plugin!=='meshdrive')return;if(command.pluginaction==='openDriveOnAgent'){var ok=sendAgent(command.nodeid,'openDrive');if(myparent&&myparent.send)myparent.send(JSON.stringify({action:'plugin',plugin:'meshdrive',pluginaction:'agentCommandResult',ok:ok,requested:'open'}));return;}if(command.pluginaction==='mapDriveOnAgent'){var ok2=sendAgent(command.nodeid,'mapDrive');if(myparent&&myparent.send)myparent.send(JSON.stringify({action:'plugin',plugin:'meshdrive',pluginaction:'agentCommandResult',ok:ok2,requested:'map'}));return;}}catch(e){log('serveraction error: '+(e.stack||e));}};
+    function app(){var c=[obj.meshServer&&obj.meshServer.webserver&&obj.meshServer.webserver.app,obj.meshServer&&obj.meshServer.app,parent&&parent.app,parent&&parent.webserver&&parent.webserver.app];for(var i=0;i<c.length;i++)if(c[i]&&typeof c[i].use==='function')return c[i];return null;}
+    obj.hook_setupHttpHandlers=function(){if(cfg.enabled===false)return;var a=app();if(!a){log('Express app not found');return;}mkdir(rootDomain());a.use(cfg.route,function(req,res){dav(req,res);});log('registered route '+cfg.route+' -> '+rootDomain()+'/'+cfg.userFolderPrefix+'<username>');};
+    obj.server_startup=function(){log('loaded for '+cfg.publicUrl+', root='+rootDomain());};
+    obj.copyDetectedAddress=function(){var ua=navigator.userAgent||'',address='https://mesh.aplicado.com.br/drive/';if(/Windows/i.test(ua))address=String.raw`\\mesh.aplicado.com.br@SSL\drive`;else if(/Macintosh|Mac OS|Linux/i.test(ua))address='davs://mesh.aplicado.com.br/drive/';if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(address).then(function(){alert('Endereco copiado:\n\n'+address);},function(){prompt('Copie o endereco abaixo:',address);});else prompt('Copie o endereco abaixo:',address);};
+    obj.nodeid=function(){try{if(typeof currentNode!=='undefined'&&currentNode&&currentNode._id)return currentNode._id;}catch(e){}try{if(typeof currentNodeId!=='undefined'&&currentNodeId)return currentNodeId;}catch(e){}return null;};
+    obj.openDriveOnAgent=function(){var n=pluginHandler.meshdrive.nodeid();if(!n){alert('Selecione um dispositivo para abrir o Mesh Drive.');return;}meshserver.send({action:'plugin',plugin:'meshdrive',pluginaction:'openDriveOnAgent',nodeid:n});};
+    obj.mapDriveOnAgent=function(){var n=pluginHandler.meshdrive.nodeid();if(!n){alert('Selecione um dispositivo para mapear o Mesh Drive.');return;}meshserver.send({action:'plugin',plugin:'meshdrive',pluginaction:'mapDriveOnAgent',nodeid:n});};
+    obj.injectMeshDriveLauncher=function(){try{if(document.getElementById('plugin_meshDriveLauncher'))return;var b='<span id="plugin_meshDriveLauncher" style="display:inline-flex;align-items:center;gap:6px;margin-left:auto;white-space:nowrap;"><button onclick="pluginHandler.meshdrive.copyDetectedAddress();" style="padding:5px 9px;border-radius:6px;border:1px solid #57606a;background:#f6f8fa;color:#24292f;cursor:pointer;font-size:12px;line-height:16px;">Copiar endereco Mesh Drive</button></span>';var t=null,hs=document.querySelectorAll('h1,h2,h3,div,span');for(var i=0;i<hs.length;i++){var txt=(hs[i].innerText||hs[i].textContent||'').trim().toLowerCase();if(txt==='meus arquivos'||txt==='my files'){t=hs[i];break;}}if(t){t.style.display='flex';t.style.alignItems='center';t.style.flexWrap='nowrap';t.style.width='100%';t.insertAdjacentHTML('beforeend',b);}}catch(e){console.log('Mesh Drive My Files injection failed',e);}};
+    obj.injectDeviceMeshDrive=function(){try{if(document.getElementById('plugin_meshDriveDeviceActions'))return;var html='<div id="plugin_meshDriveDeviceActions" style="margin:8px 0;padding:8px 10px;border:1px solid #d0d7de;border-radius:8px;background:#f6f8fa;max-width:520px;"><div style="font-weight:600;margin-bottom:6px;">&#128193; Mesh Drive</div><div style="display:flex;flex-wrap:wrap;gap:6px;"><button onclick="pluginHandler.meshdrive.openDriveOnAgent();" style="padding:6px 10px;border-radius:6px;border:1px solid #1f6feb;background:#1f6feb;color:white;cursor:pointer;">Abrir Drive</button><button onclick="pluginHandler.meshdrive.mapDriveOnAgent();" style="padding:6px 10px;border-radius:6px;border:1px solid #16803c;background:#16803c;color:white;cursor:pointer;">Mapear Drive</button></div></div>';var target=null,ids=['p10html3','p10html2','p10','p11','p13'];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el){target=el;break;}}if(!target)target=document.querySelector('.p10html3left')||document.body;if(target)target.insertAdjacentHTML('afterbegin',html);}catch(e){console.log('Mesh Drive device action injection failed',e);}};
+    obj.onWebUIStartupEnd=function(){setTimeout(pluginHandler.meshdrive.injectMeshDriveLauncher,500);setTimeout(pluginHandler.meshdrive.injectMeshDriveLauncher,2000);setTimeout(pluginHandler.meshdrive.injectDeviceMeshDrive,1000);};
+    obj.goPageEnd=function(){setTimeout(pluginHandler.meshdrive.injectMeshDriveLauncher,300);setTimeout(pluginHandler.meshdrive.injectDeviceMeshDrive,400);};
+    obj.onDeviceRefreshEnd=function(){setTimeout(pluginHandler.meshdrive.injectDeviceMeshDrive,300);};
     return obj;
 };
