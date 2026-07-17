@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.3
+- Corrigido `modules_meshcore/meshdrive.js` para usar `function consoleaction(args, rights, sessionid, parent)` no mesmo padrão do ScriptTask.
+- Removido `global.consoleaction`, que causava erro `undefined not callable`.
+- Melhorada a injeção dos botões na barra de título do dispositivo, procurando o texto `Em geral -` / `General -` em qualquer posição e evitando renderizar card no final da página.
+- Se uma versão antiga do bloco estiver no final da página, a rotina tenta remover e reinserir no título.
+
 ## 0.6.2
 - Corrigido erro `getNodeId is not defined` removendo função auxiliar local do caminho exportado.
 - `openDriveOnAgent()` e `mapDriveOnAgent()` agora detectam o dispositivo diretamente dentro da própria função exportada.

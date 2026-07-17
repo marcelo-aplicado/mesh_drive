@@ -38,3 +38,8 @@ Ao clicar nos botões, o console do navegador deve mostrar:
 MeshDrive OPEN nodeid: <nodeid>
 MeshDrive MAP nodeid: <nodeid>
 ```
+
+
+## 0.6.3
+
+Corrige o módulo de agente para usar a assinatura `function consoleaction(args, rights, sessionid, parent)`, como esperado pelo MeshCentral. Também melhora o posicionamento dos botões na barra de título do dispositivo.

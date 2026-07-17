@@ -38,7 +38,45 @@ module.exports.meshdrive = function (parent) {
     obj.openDriveOnAgent=function(){var n=null;try{if(typeof currentNode!=='undefined'&&currentNode&&currentNode._id)n=currentNode._id;}catch(e){}try{if(!n&&typeof currentNodeId!=='undefined'&&currentNodeId)n=currentNodeId;}catch(e){}console.log('MeshDrive OPEN nodeid:',n);if(!n){alert('Selecione um dispositivo para abrir o Mesh Drive.');return;}meshserver.send({action:'plugin',plugin:'meshdrive',pluginaction:'openDriveOnAgent',nodeid:n});};
     obj.mapDriveOnAgent=function(){var n=null;try{if(typeof currentNode!=='undefined'&&currentNode&&currentNode._id)n=currentNode._id;}catch(e){}try{if(!n&&typeof currentNodeId!=='undefined'&&currentNodeId)n=currentNodeId;}catch(e){}console.log('MeshDrive MAP nodeid:',n);if(!n){alert('Selecione um dispositivo para mapear o Mesh Drive.');return;}meshserver.send({action:'plugin',plugin:'meshdrive',pluginaction:'mapDriveOnAgent',nodeid:n});};
     obj.injectMeshDriveLauncher=function(){try{if(document.getElementById('plugin_meshDriveLauncher'))return;var b='<span id="plugin_meshDriveLauncher" style="display:inline-flex;align-items:center;gap:6px;margin-left:auto;white-space:nowrap;"><button onclick="pluginHandler.meshdrive.copyDetectedAddress();" style="padding:5px 9px;border-radius:6px;border:1px solid #57606a;background:#f6f8fa;color:#24292f;cursor:pointer;font-size:12px;line-height:16px;">Copiar endereco Mesh Drive</button></span>';var t=null,hs=document.querySelectorAll('h1,h2,h3,div,span');for(var i=0;i<hs.length;i++){var txt=(hs[i].innerText||hs[i].textContent||'').trim().toLowerCase();if(txt==='meus arquivos'||txt==='my files'){t=hs[i];break;}}if(t){t.style.display='flex';t.style.alignItems='center';t.style.flexWrap='nowrap';t.style.width='100%';t.insertAdjacentHTML('beforeend',b);}}catch(e){console.log('Mesh Drive My Files injection failed',e);}};
-    obj.injectDeviceMeshDrive=function(){try{if(document.getElementById('plugin_meshDriveDeviceActions'))return;var html='<span id="plugin_meshDriveDeviceActions" style="display:inline-flex;align-items:center;gap:6px;margin-left:auto;white-space:nowrap;"><span style="font-size:13px;font-weight:600;color:#24292f;">&#128193; Mesh Drive</span><button onclick="pluginHandler.meshdrive.openDriveOnAgent();" style="padding:5px 9px;border-radius:6px;border:1px solid #1f6feb;background:#1f6feb;color:white;cursor:pointer;font-size:12px;line-height:16px;">Abrir Drive</button><button onclick="pluginHandler.meshdrive.mapDriveOnAgent();" style="padding:5px 9px;border-radius:6px;border:1px solid #16803c;background:#16803c;color:white;cursor:pointer;font-size:12px;line-height:16px;">Mapear Drive</button></span>';var title=null,candidates=[],els=document.querySelectorAll('h1,h2,h3,div,span');for(var i=0;i<els.length;i++){var txt=(els[i].innerText||els[i].textContent||'').trim();var low=txt.toLowerCase();if((low.indexOf('em geral -')===0||low.indexOf('general -')===0)&&txt.length<160)candidates.push(els[i]);}if(candidates.length>0){title=candidates[0];}if(title){title.style.display='flex';title.style.alignItems='center';title.style.flexWrap='nowrap';title.style.gap='8px';title.style.width='100%';title.insertAdjacentHTML('beforeend',html);return;}var target=document.getElementById('p10html3')||document.getElementById('p10')||document.body;target.insertAdjacentHTML('afterbegin','<div style="margin:8px 0;text-align:right;">'+html+'</div>');}catch(e){console.log('Mesh Drive device action injection failed',e);}};
+    obj.injectDeviceMeshDrive=function(){
+        try{
+            var existing=document.getElementById('plugin_meshDriveDeviceActions');
+            var html='<span id="plugin_meshDriveDeviceActions" style="float:right;display:inline-flex;align-items:center;gap:6px;margin-left:auto;white-space:nowrap;font-size:13px;font-weight:400;">'+
+                '<span style="font-size:13px;font-weight:600;color:#24292f;">&#128193; Mesh Drive</span>'+
+                '<button onclick="pluginHandler.meshdrive.openDriveOnAgent();" style="padding:5px 9px;border-radius:6px;border:1px solid #1f6feb;background:#1f6feb;color:white;cursor:pointer;font-size:12px;line-height:16px;">Abrir Drive</button>'+
+                '<button onclick="pluginHandler.meshdrive.mapDriveOnAgent();" style="padding:5px 9px;border-radius:6px;border:1px solid #16803c;background:#16803c;color:white;cursor:pointer;font-size:12px;line-height:16px;">Mapear Drive</button>'+
+                '</span>';
+            var title=null,candidates=[],els=document.querySelectorAll('h1,h2,h3,div,span,td');
+            for(var i=0;i<els.length;i++){
+                var txt=(els[i].innerText||els[i].textContent||'').replace(/\s+/g,' ').trim();
+                var low=txt.toLowerCase();
+                if((low.indexOf('em geral -')>=0||low.indexOf('general -')>=0)&&txt.length<220){
+                    candidates.push(els[i]);
+                }
+            }
+            if(candidates.length>0){
+                candidates.sort(function(a,b){
+                    var at=(a.innerText||a.textContent||'').length;
+                    var bt=(b.innerText||b.textContent||'').length;
+                    return at-bt;
+                });
+                title=candidates[0];
+            }
+            if(title){
+                if(existing && existing.parentNode){ existing.parentNode.removeChild(existing); }
+                title.style.display='flex';
+                title.style.alignItems='center';
+                title.style.flexWrap='nowrap';
+                title.style.gap='8px';
+                title.style.width='100%';
+                title.insertAdjacentHTML('beforeend',html);
+                return;
+            }
+            if(existing) return;
+            var target=document.getElementById('p10html3')||document.getElementById('p10')||document.body;
+            target.insertAdjacentHTML('afterbegin','<div style="margin:8px 0;text-align:right;">'+html+'</div>');
+        }catch(e){console.log('Mesh Drive device action injection failed',e);}
+    };
     obj.onWebUIStartupEnd=function(){setTimeout(pluginHandler.meshdrive.injectMeshDriveLauncher,500);setTimeout(pluginHandler.meshdrive.injectMeshDriveLauncher,2000);setTimeout(pluginHandler.meshdrive.injectDeviceMeshDrive,1000);};
     obj.goPageEnd=function(){setTimeout(pluginHandler.meshdrive.injectMeshDriveLauncher,300);setTimeout(pluginHandler.meshdrive.injectDeviceMeshDrive,400);};
     obj.onDeviceRefreshEnd=function(){setTimeout(pluginHandler.meshdrive.injectDeviceMeshDrive,300);};
