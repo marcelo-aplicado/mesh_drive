@@ -77,3 +77,5 @@ function consoleaction(args, rights, sessionid, parent) {
         return 'Mesh Drive error: ' + String(e && e.message ? e.message : e);
     }
 }
+
+module.exports = { consoleaction : consoleaction };

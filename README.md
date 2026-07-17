@@ -18,6 +18,16 @@ https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/config.json
 - Windows: `Mapear Drive` procura a primeira letra livre entre `M:` e `Z:`.
 - Linux/macOS: tenta abrir ou montar usando `davs://` / WebDAV.
 
+## Correção 0.6.4
+
+O módulo do agente agora exporta corretamente:
+
+```javascript
+module.exports = { consoleaction : consoleaction };
+```
+
+Esse formato segue o padrão observado no plugin ScriptTask instalado no MeshCentral.
+
 ## Teste WebDAV
 
 ```bash
@@ -29,17 +39,3 @@ Esperado:
 ```text
 HTTP/1.1 207 Multi-Status
 ```
-
-## Debug da tela do dispositivo
-
-Ao clicar nos botões, o console do navegador deve mostrar:
-
-```text
-MeshDrive OPEN nodeid: <nodeid>
-MeshDrive MAP nodeid: <nodeid>
-```
-
-
-## 0.6.3
-
-Corrige o módulo de agente para usar a assinatura `function consoleaction(args, rights, sessionid, parent)`, como esperado pelo MeshCentral. Também melhora o posicionamento dos botões na barra de título do dispositivo.
