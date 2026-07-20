@@ -1,218 +1,133 @@
-# Mesh Drive
+# MeshCentral Mesh Branding
 
-Mesh Drive expõe o **My Files** do MeshCentral via WebDAV em `/drive` e adiciona botões rápidos em **Meus Arquivos** para facilitar o acesso aos arquivos dos usuários.
+Plugin para aplicar **logotipo, título, favicon, cores e texto de apoio por subdomínio** em uma única instalação do MeshCentral.
 
-## Pré-requisito: ativar plugins no MeshCentral
+Repositório esperado:
 
-Antes de instalar o plugin, confirme que os plugins estão habilitados no arquivo `config.json` do MeshCentral:
+```text
+marcelo-aplicado/mesh_branding
+```
+
+URL de instalação pela interface gráfica do MeshCentral:
+
+```text
+https://raw.githubusercontent.com/marcelo-aplicado/mesh_branding/main/config.json
+```
+
+## Cenário atendido
+
+Vários subdomínios apontando para a mesma instância MeshCentral e para a mesma base de dados, sem Multi-Tenant:
+
+- `mesh.aplicado.com.br`
+- `mesh.fastcopy.net.br`
+- `mesh.crsbrands.com.br`
+- `mesh.mhs.tec.br`
+
+A separação de acesso continua sendo feita pelas permissões de usuários e grupos de dispositivos do MeshCentral. Este plugin altera apenas a identidade visual exibida no navegador.
+
+## Estrutura
+
+```text
+mesh_branding/
+├── assets/
+│   ├── favicons/
+│   └── logos/
+├── brand-config.json
+├── CHANGELOG.md
+├── config.json
+├── mesh_branding.js
+├── LICENSE
+└── README.md
+```
+
+## Configuração das marcas
+
+Edite `brand-config.json`:
 
 ```json
 {
-  "plugins": {
-    "enabled": true
+  "defaultBrand": "mesh.aplicado.com.br",
+  "options": {
+    "applyFavicon": true,
+    "applyDocumentTitle": true,
+    "applyHeaderTitle": true,
+    "applyLogo": true,
+    "createFallbackBadge": true,
+    "debug": false
+  },
+  "domains": {
+    "mesh.aplicado.com.br": {
+      "title": "Aplicado Mesh",
+      "title2": "Aplicado",
+      "logo": "/plugins/mesh_branding/assets/logos/aplicado.svg",
+      "favicon": "/plugins/mesh_branding/assets/favicons/aplicado.svg",
+      "primaryColor": "#2563eb",
+      "accentColor": "#0f172a",
+      "supportText": "Ambiente principal"
+    }
   }
 }
 ```
 
-Após alterar o arquivo, reinicie o serviço do MeshCentral.
+## Instalação no MeshCentral
 
----
+### 1. Ative plugins no MeshCentral
 
-## Requisito para Windows
+No `config.json` do MeshCentral, em `settings`:
 
-O acesso WebDAV do Mesh Drive depende do serviço **Cliente Web (WebClient)** do Windows.
-
-Em muitas instalações do Windows o serviço está configurado como **Manual** e pode estar parado.
-
-Para verificar:
-
-```cmd
-sc query WebClient
+```json
+{
+  "settings": {
+    "plugins": {
+      "enabled": true
+    }
+  }
+}
 ```
 
-Ou abra:
+Reinicie o MeshCentral após alterar essa configuração.
+
+### 2. Publique este projeto no GitHub
+
+O repositório deve ser:
 
 ```text
-services.msc
+https://github.com/marcelo-aplicado/mesh_branding
 ```
 
-e verifique o serviço:
+### 3. Instale pela interface gráfica
+
+No MeshCentral:
 
 ```text
-Cliente Web (WebClient)
+My Server -> Plugins -> Download plugin
 ```
 
-Se necessário, inicie o serviço:
-
-```cmd
-net start WebClient
-```
-
-Opcionalmente, configure para iniciar automaticamente:
-
-```cmd
-sc config WebClient start= auto
-```
-
-Sem esse serviço, o Windows pode apresentar erros como:
+Informe exatamente:
 
 ```text
-Erro de sistema 67
-O nome da rede não foi encontrado
+https://raw.githubusercontent.com/marcelo-aplicado/mesh_branding/main/config.json
 ```
 
----
+Depois habilite o plugin.
 
-## Instalação
+## Atualização
 
-Na tela de plugins do MeshCentral utilize:
+1. Altere `brand-config.json`, logos ou o código.
+2. Incremente a versão no `config.json`.
+3. Faça commit e push no GitHub.
+4. Atualize o plugin pela interface do MeshCentral.
 
-```text
-https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/config.json
+## Teste rápido
+
+Acesse os subdomínios e confira título, favicon e identidade visual.
+
+No console do navegador, você pode reaplicar manualmente:
+
+```javascript
+window.meshBrandingApply && window.meshBrandingApply();
 ```
-
----
-
-## Recursos
-
-- Endpoint WebDAV em:
-
-```text
-https://<HOSTNAME>/drive/
-```
-
-- O hostname é detectado automaticamente a partir do servidor MeshCentral acessado pelo navegador.
-
-- Adiciona dois botões na tela **Meus Arquivos**:
-
-### Mesh Drive
-
-Copia automaticamente o endereço correto para o sistema operacional detectado.
-
-#### Windows
-
-```text
-\\<HOSTNAME>@SSL\drive
-```
-
-#### Linux
-
-```text
-davs://<HOSTNAME>/drive/
-```
-
-#### macOS
-
-```text
-davs://<HOSTNAME>/drive/
-```
-
----
-
-### Mapear
-
-Copia automaticamente um comando adequado ao sistema operacional detectado.
-
-#### Windows
-
-Gera um comando PowerShell que:
-
-- tenta usar a unidade `M:`
-- caso esteja ocupada tenta `N:` até `Z:`
-- executa o mapeamento WebDAV
-- define o nome da unidade como:
-
-```text
-Mesh Drive
-```
-
-- abre o Explorer automaticamente
-
-Exemplo de resultado:
-
-```text
-Mesh Drive (M:)
-Mesh Drive (N:)
-```
-
-#### Linux
-
-Gera um comando utilizando:
-
-```bash
-gio mount
-```
-
-e
-
-```bash
-xdg-open
-```
-
-para abrir ou montar o compartilhamento WebDAV.
-
-#### macOS
-
-Gera um comando:
-
-```bash
-open "davs://<HOSTNAME>/drive/"
-```
-
-para abrir o compartilhamento diretamente no Finder.
-
----
-
-## Utilização Manual
-
-### Windows Explorer
-
-Cole no Explorer:
-
-```text
-\\<HOSTNAME>@SSL\drive
-```
-
-### Linux
-
-Abra:
-
-```text
-davs://<HOSTNAME>/drive/
-```
-
-### macOS
-
-Abra:
-
-```text
-davs://<HOSTNAME>/drive/
-```
-
----
-
-## Teste WebDAV
-
-```bash
-curl -k -i -u <usuario> -X PROPFIND -H "Depth: 1" https://<HOSTNAME>/drive/
-```
-
-Resposta esperada:
-
-```text
-HTTP/1.1 207 Multi-Status
-```
-
----
-
-## Compatibilidade
-
-- MeshCentral 1.2.1 ou superior
-- Windows 10/11
-- Linux com suporte WebDAV
-- macOS com suporte WebDAV
-- Navegadores modernos compatíveis com Clipboard API
 
 ## Licença
 
-MIT License
+MIT

@@ -1,0 +1,49 @@
+{
+  "defaultBrand": "mesh.aplicado.com.br",
+  "options": {
+    "applyFavicon": true,
+    "applyDocumentTitle": true,
+    "applyHeaderTitle": true,
+    "applyLogo": true,
+    "createFallbackBadge": true,
+    "debug": false
+  },
+  "domains": {
+    "mesh.aplicado.com.br": {
+      "title": "Aplicado Mesh",
+      "title2": "Aplicado",
+      "logo": "/plugins/mesh_branding/assets/logos/aplicado.svg",
+      "favicon": "/plugins/mesh_branding/assets/favicons/aplicado.svg",
+      "primaryColor": "#2563eb",
+      "accentColor": "#0f172a",
+      "supportText": "Ambiente principal"
+    },
+    "mesh.fastcopy.net.br": {
+      "title": "FastCopy Mesh",
+      "title2": "FastCopy",
+      "logo": "/plugins/mesh_branding/assets/logos/fastcopy.svg",
+      "favicon": "/plugins/mesh_branding/assets/favicons/fastcopy.svg",
+      "primaryColor": "#16a34a",
+      "accentColor": "#052e16",
+      "supportText": "Acesso remoto FastCopy"
+    },
+    "mesh.crsbrands.com.br": {
+      "title": "CRS Brands Mesh",
+      "title2": "CRS Brands",
+      "logo": "/plugins/mesh_branding/assets/logos/crsbrands.svg",
+      "favicon": "/plugins/mesh_branding/assets/favicons/crsbrands.svg",
+      "primaryColor": "#dc2626",
+      "accentColor": "#450a0a",
+      "supportText": "Ambiente CRS Brands"
+    },
+    "mesh.mhs.tec.br": {
+      "title": "MHS TEC Mesh",
+      "title2": "MHS TEC",
+      "logo": "/plugins/mesh_branding/assets/logos/mhs.svg",
+      "favicon": "/plugins/mesh_branding/assets/favicons/mhs.svg",
+      "primaryColor": "#7c3aed",
+      "accentColor": "#2e1065",
+      "supportText": "Ambiente MHS TEC"
+    }
+  }
+}
