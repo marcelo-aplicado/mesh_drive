@@ -1,7 +1,7 @@
 {
   "name": "Mesh Drive",
   "shortName": "meshdrive",
-  "version": "2.1.0-test",
+  "version": "2.1.1-test",
   "author": "Marcelo Henrique da Silva / Microsoft Copilot",
   "description": "Mesh Drive WebDAV with multi-tenancy, native authentication, shares.json and graphical share manager.",
   "hasAdminPanel": false,

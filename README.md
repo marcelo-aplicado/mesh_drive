@@ -34,7 +34,7 @@ sc config WebClient start= auto
 
 ## Compartilhamentos
 
-A versão `2.1.0-test` usa o arquivo:
+A versão `2.1.1-test` usa o arquivo:
 
 ```text
 meshcentral-data/plugins/meshdrive/shares.json
@@ -47,6 +47,20 @@ https://<HOSTNAME>/meshdrive/shares
 ```
 
 A tela solicita autenticação Basic e exige usuário administrador do MeshCentral.
+
+## Comportamento do WebDAV
+
+A raiz `/drive/` continua sendo a área pessoal do usuário, preservando a compatibilidade com o WebDAV do Windows.
+
+A pasta virtual `Compartilhado` aparece como item adicional dentro da raiz:
+
+```text
+\\<HOSTNAME>@SSL\drive
+├── arquivos pessoais do usuário
+└── Compartilhado
+    ├── Public
+    └── TI
+```
 
 ## Exemplo de shares.json
 
@@ -84,6 +98,6 @@ A tela solicita autenticação Basic e exige usuário administrador do MeshCentr
 Cada tenant usa seu próprio diretório físico. Exemplo:
 
 ```text
-mesh.aplicado.com.br      -> meshcentral-files/domain
-mesh.crsbrands.com.br    -> meshcentral-files/domain-crsbrands
+mesh.aplicado.com.br     -> meshcentral-files/domain
+mesh.crsbrands.com.br   -> meshcentral-files/domain-crsbrands
 ```
