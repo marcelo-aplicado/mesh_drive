@@ -1,8 +1,6 @@
 # Mesh Drive
 
-Mesh Drive expõe o **My Files** do MeshCentral via WebDAV em `/drive`.
-
-Esta versão `2.1.3-test` mantém a rota WebDAV estável e adiciona uma interface separada para administrar o arquivo `shares.json`.
+Mesh Drive expõe o **My Files** do MeshCentral via WebDAV em `/drive` e adiciona uma rota experimental separada `/shared` para compartilhamentos.
 
 ## Instalação
 
@@ -34,21 +32,25 @@ net start WebClient
 sc config WebClient start= auto
 ```
 
-## WebDAV
+## Rotas WebDAV
 
-A rota WebDAV continua sendo:
+Área pessoal estável:
 
 ```text
 https://<HOSTNAME>/drive/
-```
-
-No Windows:
-
-```text
 \\<HOSTNAME>@SSL\drive
 ```
 
-## Interface de compartilhamentos
+Compartilhamentos experimentais:
+
+```text
+https://<HOSTNAME>/shared/
+\\<HOSTNAME>@SSL\shared
+```
+
+A rota `/drive` não foi alterada nesta versão.
+
+## Interface administrativa
 
 A interface fica em:
 
@@ -62,8 +64,6 @@ A interface edita o arquivo:
 meshcentral-data/plugins/meshdrive/shares.json
 ```
 
-Nesta versão de teste, os compartilhamentos ainda **não são aplicados ao WebDAV**. A finalidade é validar o gerenciamento visual e o salvamento do `shares.json` sem alterar a rota `/drive`.
-
 ## Exemplo de shares.json
 
 ```json
@@ -75,11 +75,32 @@ Nesta versão de teste, os compartilhamentos ainda **não são aplicados ao WebD
       "access": "read",
       "users": ["*"],
       "groups": []
+    },
+    {
+      "name": "TI",
+      "path": "shares/ti",
+      "access": "write",
+      "users": ["marcelo", "lucas"],
+      "groups": []
     }
   ]
 }
 ```
 
-## Botão Compartilhamentos
+## Permissões
 
-Na tela **Meus Arquivos**, além dos botões **Mesh Drive** e **Mapear**, a versão de teste adiciona o botão **Compartilhamentos**, que abre a interface administrativa em `/meshdrive`.
+- `read`: permite listar e baixar arquivos, bloqueando escrita.
+- `write`: permite leitura e gravação.
+- `users`: lista de usuários autorizados. Use `*` para todos.
+- `groups`: experimental, depende de como os grupos aparecem no usuário do MeshCentral.
+
+## Multi-Tenancy
+
+Cada tenant usa seu próprio diretório físico:
+
+```text
+mesh.aplicado.com.br    -> meshcentral-files/domain
+mesh.crsbrands.com.br  -> meshcentral-files/domain-crsbrands
+```
+
+Um share com `path: "public"` aponta para `public` dentro do diretório do tenant atual.
