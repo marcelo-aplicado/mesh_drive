@@ -1,10 +1,10 @@
 # Mesh Drive
 
-Mesh Drive expõe o **My Files** do MeshCentral via WebDAV em `/drive` e adiciona botões rápidos em **Meus Arquivos** para facilitar o acesso aos arquivos dos usuários.
+Mesh Drive expõe o **My Files** do MeshCentral via WebDAV em `/drive` e adiciona botões rápidos em **Meus Arquivos** para copiar o endereço WebDAV e copiar um comando de mapeamento conforme o sistema operacional.
 
 ## Pré-requisito: ativar plugins no MeshCentral
 
-Antes de instalar o plugin, confirme que os plugins estão habilitados no arquivo `config.json` do MeshCentral:
+Antes de instalar o plugin, confirme que os plugins estão habilitados no `config.json` do MeshCentral:
 
 ```json
 {
@@ -14,41 +14,33 @@ Antes de instalar o plugin, confirme que os plugins estão habilitados no arquiv
 }
 ```
 
-Após alterar o arquivo, reinicie o serviço do MeshCentral.
+Depois de alterar o `config.json`, reinicie o serviço do MeshCentral.
 
----
+## Instalação
+
+Na tela de plugins do MeshCentral, use exatamente este endereço para instalar o plugin:
+
+```text
+https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/config.json
+```
 
 ## Requisito para Windows
 
-O acesso WebDAV do Mesh Drive depende do serviço **Cliente Web (WebClient)** do Windows.
+O acesso WebDAV no Windows depende do serviço **Cliente Web (WebClient)**. Em muitas instalações do Windows, ele fica como **Manual** e pode estar parado.
 
-Em muitas instalações do Windows o serviço está configurado como **Manual** e pode estar parado.
-
-Para verificar:
+Verifique:
 
 ```cmd
 sc query WebClient
 ```
 
-Ou abra:
-
-```text
-services.msc
-```
-
-e verifique o serviço:
-
-```text
-Cliente Web (WebClient)
-```
-
-Se necessário, inicie o serviço:
+Inicie, se necessário:
 
 ```cmd
 net start WebClient
 ```
 
-Opcionalmente, configure para iniciar automaticamente:
+Opcionalmente, configure como automático:
 
 ```cmd
 sc config WebClient start= auto
@@ -61,135 +53,57 @@ Erro de sistema 67
 O nome da rede não foi encontrado
 ```
 
----
-
-## Instalação
-
-Na tela de plugins do MeshCentral utilize:
-
-```text
-https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/config.json
-```
-
----
-
 ## Recursos
 
-- Endpoint WebDAV em:
+- WebDAV: `https://<HOSTNAME>/drive/`
+- O hostname é detectado automaticamente a partir do servidor MeshCentral acessado no navegador.
+- Em **Meus Arquivos**, dois botões são exibidos:
+  - **Mesh Drive**: copia o endereço adequado ao sistema operacional.
+  - **Mapear**: copia um comando para abrir/mapear o Mesh Drive conforme o sistema operacional.
+
+## Comportamento por sistema operacional
+
+- **Windows**
+  - `Mesh Drive`: copia `\\<HOSTNAME>@SSL\drive`.
+  - `Mapear`: copia um comando PowerShell que tenta mapear a primeira letra livre entre `M:` e `Z:` e nomear a unidade como **Mesh Drive**.
+
+- **Linux**
+  - `Mesh Drive`: copia `davs://<HOSTNAME>/drive/`.
+  - `Mapear`: copia um comando que tenta usar `gio mount` e `xdg-open` para montar/abrir o WebDAV no ambiente gráfico.
+
+- **macOS**
+  - `Mesh Drive`: copia `davs://<HOSTNAME>/drive/`.
+  - `Mapear`: copia o comando `open "davs://<HOSTNAME>/drive/"`.
+
+## Multi-Tenancy
+
+O Mesh Drive resolve o domínio interno usando o hostname da requisição WebDAV.
+
+Exemplo:
 
 ```text
-https://<HOSTNAME>/drive/
+meshcentral-files/domain
+meshcentral-files/domain-crsbrands
 ```
 
-- O hostname é detectado automaticamente a partir do servidor MeshCentral acessado pelo navegador.
+Se o acesso WebDAV chegar por `mesh.crsbrands.com.br`, o plugin tenta usar automaticamente `domain-crsbrands`, desde que esse diretório exista em `meshcentral-files`.
 
-- Adiciona dois botões na tela **Meus Arquivos**:
+Também é possível configurar mapeamentos explícitos no `config.json` do MeshCentral:
 
-### Mesh Drive
-
-Copia automaticamente o endereço correto para o sistema operacional detectado.
-
-#### Windows
-
-```text
-\\<HOSTNAME>@SSL\drive
+```json
+{
+  "settings": {
+    "meshDrive": {
+      "hostDomainMap": {
+        "mesh.crsbrands.com.br": "crsbrands",
+        "mesh.aplicado.com.br": "domain"
+      }
+    }
+  }
+}
 ```
 
-#### Linux
-
-```text
-davs://<HOSTNAME>/drive/
-```
-
-#### macOS
-
-```text
-davs://<HOSTNAME>/drive/
-```
-
----
-
-### Mapear
-
-Copia automaticamente um comando adequado ao sistema operacional detectado.
-
-#### Windows
-
-Gera um comando PowerShell que:
-
-- tenta usar a unidade `M:`
-- caso esteja ocupada tenta `N:` até `Z:`
-- executa o mapeamento WebDAV
-- define o nome da unidade como:
-
-```text
-Mesh Drive
-```
-
-- abre o Explorer automaticamente
-
-Exemplo de resultado:
-
-```text
-Mesh Drive (M:)
-Mesh Drive (N:)
-```
-
-#### Linux
-
-Gera um comando utilizando:
-
-```bash
-gio mount
-```
-
-e
-
-```bash
-xdg-open
-```
-
-para abrir ou montar o compartilhamento WebDAV.
-
-#### macOS
-
-Gera um comando:
-
-```bash
-open "davs://<HOSTNAME>/drive/"
-```
-
-para abrir o compartilhamento diretamente no Finder.
-
----
-
-## Utilização Manual
-
-### Windows Explorer
-
-Cole no Explorer:
-
-```text
-\\<HOSTNAME>@SSL\drive
-```
-
-### Linux
-
-Abra:
-
-```text
-davs://<HOSTNAME>/drive/
-```
-
-### macOS
-
-Abra:
-
-```text
-davs://<HOSTNAME>/drive/
-```
-
----
+No exemplo acima, `crsbrands` será resolvido para o diretório `domain-crsbrands`.
 
 ## Teste WebDAV
 
@@ -202,16 +116,6 @@ Resposta esperada:
 ```text
 HTTP/1.1 207 Multi-Status
 ```
-
----
-
-## Compatibilidade
-
-- MeshCentral 1.2.1 ou superior
-- Windows 10/11
-- Linux com suporte WebDAV
-- macOS com suporte WebDAV
-- Navegadores modernos compatíveis com Clipboard API
 
 ## Licença
 

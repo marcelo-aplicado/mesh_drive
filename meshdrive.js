@@ -28,7 +28,8 @@ module.exports.meshdrive = function (parent) {
         defaultUserSubFolder: '',
         readOnly: false,
         allowPublic: false,
-        passwordIterations: 12000
+        passwordIterations: 12000,
+        hostDomainMap: {}
     }, settings.meshDrive || settings.meshdrive || {});
 
     function log(m) {
@@ -45,6 +46,48 @@ module.exports.meshdrive = function (parent) {
         return safe(u.toLowerCase());
     }
     function mkdir(d) { fs.mkdirSync(d, { recursive: true }); }
+    function domainFolderFromValue(value) {
+        value = String(value || '').trim().toLowerCase();
+        if (!value || value === 'default' || value === 'domain') return 'domain';
+        if (value.indexOf('domain-') === 0) return safe(value);
+        return 'domain-' + safe(value);
+    }
+    function domainIdFromFolder(folder) {
+        folder = String(folder || 'domain');
+        if (folder === 'domain') return '';
+        if (folder.indexOf('domain-') === 0) return folder.substring(7);
+        return folder;
+    }
+    function rootDomainForFolder(folder) {
+        return path.resolve(path.join(cfg.meshFilesRoot, folder || cfg.meshDomainFolder || 'domain'));
+    }
+    function fsDomainExists(folder) {
+        try { return fs.existsSync(rootDomainForFolder(folder)); } catch (e) { return false; }
+    }
+    function resolveDomainContext(req) {
+        var host = ((req && req.headers && (req.headers.host || req.headers['x-forwarded-host'])) || '').split(',')[0].trim().toLowerCase();
+        host = host.split(':')[0];
+        var defaultFolder = cfg.meshDomainFolder || 'domain';
+        var mapped = cfg.hostDomainMap && (cfg.hostDomainMap[host] || cfg.hostDomainMap['*']);
+        if (mapped) {
+            var mappedFolder = domainFolderFromValue(mapped);
+            return { host: host, folder: mappedFolder, id: domainIdFromFolder(mappedFolder), source: 'hostDomainMap' };
+        }
+        var candidates = [];
+        function add(folder) { if (folder && candidates.indexOf(folder) < 0) candidates.push(folder); }
+        add(defaultFolder);
+        if (host) {
+            var parts = host.split('.').filter(Boolean);
+            add(domainFolderFromValue(host));
+            if (parts.length > 0) add(domainFolderFromValue(parts[0]));
+            if (parts.length > 1) add(domainFolderFromValue(parts[1]));
+            if (parts[0] === 'mesh' && parts.length > 1) add(domainFolderFromValue(parts[1]));
+        }
+        for (var i = 0; i < candidates.length; i++) {
+            if (fsDomainExists(candidates[i])) return { host: host, folder: candidates[i], id: domainIdFromFolder(candidates[i]), source: 'filesystem' };
+        }
+        return { host: host, folder: defaultFolder, id: domainIdFromFolder(defaultFolder), source: 'default' };
+    }
     function parseBasic(req) {
         var h = req.headers.authorization || '';
         if (h.toLowerCase().indexOf('basic ') !== 0) return null;
@@ -87,15 +130,32 @@ module.exports.meshdrive = function (parent) {
             } catch (e) { log('pbkdf2 exception: ' + e); resolve(null); }
         });
     }
-    async function findUser(username) {
+    async function findUser(username, ctx) {
         var u = norm(username);
-        var c = ['user//' + u, 'user/' + cfg.meshDomainFolder + '/' + u, 'user//user-' + u, 'user/' + cfg.meshDomainFolder + '/user-' + u];
-        for (var i = 0; i < c.length; i++) { var d = await dbGet(c[i]); if (d) return { id: c[i], doc: d, username: u }; }
-        return { id: 'user//' + u, doc: null, username: u };
+        var folder = (ctx && ctx.folder) || 'domain';
+        var id = (ctx && ctx.id) || '';
+        var ids = [];
+        function add(x) { if (x && ids.indexOf(x) < 0) ids.push(x); }
+        if (folder === 'domain') {
+            add('user//' + u);
+            add('user/domain/' + u);
+            add('user//user-' + u);
+            add('user/domain/user-' + u);
+        } else {
+            add('user/' + id + '/' + u);
+            add('user/' + folder + '/' + u);
+            add('user/' + id + '/user-' + u);
+            add('user/' + folder + '/user-' + u);
+        }
+        for (var i = 0; i < ids.length; i++) {
+            var d = await dbGet(ids[i]);
+            if (d) return { id: ids[i], doc: d, username: u, domainContext: ctx };
+        }
+        return { id: ids[0] || ('user//' + u), doc: null, username: u, domainContext: ctx };
     }
-    async function validate(username, password) {
-        if (cfg.allowPublic === true) return { id: 'public', username: 'public' };
-        var f = await findUser(username), d = f.doc;
+    async function validate(username, password, ctx) {
+        if (cfg.allowPublic === true) return { id: 'public', username: 'public', domainContext: ctx };
+        var f = await findUser(username, ctx), d = f.doc;
         if (!d) return null;
         if (d.locked || d.siteadmin === -1) return null;
         var salt = d.salt, stored = d.hash || d.passhash || d.pwhash || d.passwordhash;
@@ -103,25 +163,25 @@ module.exports.meshdrive = function (parent) {
         var computed = await pbkdf2(password, salt, stored);
         if (!computed) return null;
         if (!tseq(stored, computed) && !tseq(String(stored).toLowerCase(), String(computed).toLowerCase())) return null;
-        return { id: d._id || f.id, username: f.username, doc: d };
+        return { id: d._id || f.id, username: f.username, doc: d, domainContext: ctx };
     }
     function authReq(res) {
         res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Mesh Drive"', 'Content-Type': 'text/plain; charset=utf-8' });
         res.end('Authentication required');
     }
     async function auth(req, res) {
+        var ctx = resolveDomainContext(req);
         var b = parseBasic(req);
         if (!b && cfg.allowPublic !== true) { authReq(res); return null; }
-        var u = await validate(b ? b.username : 'public', b ? b.password : '');
+        var u = await validate(b ? b.username : 'public', b ? b.password : '', ctx);
         if (!u) { authReq(res); return null; }
         return u;
     }
-    function rootDomain() { return path.resolve(path.join(cfg.meshFilesRoot, cfg.meshDomainFolder)); }
     function userRoot(u) {
-        var r = path.join(rootDomain(), cfg.userFolderPrefix + norm(u.username || u.id || 'user'));
+        var ctx = (u && u.domainContext) || { folder: cfg.meshDomainFolder || 'domain' };
+        var r = path.join(rootDomainForFolder(ctx.folder), cfg.userFolderPrefix + norm(u.username || u.id || 'user'));
         if (cfg.defaultUserSubFolder) r = path.join(r, safe(cfg.defaultUserSubFolder));
-        mkdir(r);
-        return path.resolve(r);
+        mkdir(r); return path.resolve(r);
     }
     function reqPath(req) {
         var u = req.url || '/', q = u.indexOf('?');
@@ -138,11 +198,7 @@ module.exports.meshdrive = function (parent) {
         return p;
     }
     function x(s) { return String(s).replace(/[<>&'"]/g, function(c) { return {'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;'}[c]; }); }
-    function href(rel) {
-        var r = rel || '/';
-        if (r.indexOf('/') !== 0) r = '/' + r;
-        return cfg.route.replace(/\/$/, '') + encodeURI(r).replace(/#/g, '%23');
-    }
+    function href(rel) { var r = rel || '/'; if (r.indexOf('/') !== 0) r = '/' + r; return cfg.route.replace(/\/$/, '') + encodeURI(r).replace(/#/g, '%23'); }
     function prop(f, rel) {
         var st = fs.statSync(f), isD = st.isDirectory(), display = path.basename(f) || '/';
         return '<D:response><D:href>' + x(href(rel + (isD && !rel.endsWith('/') ? '/' : ''))) + '</D:href><D:propstat><D:prop><D:displayname>' + x(display) + '</D:displayname><D:getlastmodified>' + st.mtime.toUTCString() + '</D:getlastmodified><D:creationdate>' + st.birthtime.toISOString() + '</D:creationdate>' + (isD ? '<D:resourcetype><D:collection/></D:resourcetype>' : '<D:resourcetype/>') + (!isD ? '<D:getcontentlength>' + st.size + '</D:getcontentlength>' : '') + '<D:getetag>"' + st.size + '-' + Number(st.mtimeMs).toString(16) + '"</D:getetag></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response>';
@@ -168,101 +224,37 @@ module.exports.meshdrive = function (parent) {
             }
         } catch (e) { log('handler error: ' + (e.stack || e)); try { res.writeHead(500); res.end(); } catch (ex) {} }
     }
-
-    function app() {
-        var c = [obj.meshServer && obj.meshServer.webserver && obj.meshServer.webserver.app, obj.meshServer && obj.meshServer.app, parent && parent.app, parent && parent.webserver && parent.webserver.app];
-        for (var i = 0; i < c.length; i++) if (c[i] && typeof c[i].use === 'function') return c[i];
-        return null;
-    }
-    obj.hook_setupHttpHandlers = function() {
-        if (cfg.enabled === false) return;
-        var a = app();
-        if (!a) { log('Express app not found'); return; }
-        mkdir(rootDomain());
-        a.use(cfg.route, function(req, res) { dav(req, res); });
-        log('registered route ' + cfg.route + ' -> ' + rootDomain() + '/' + cfg.userFolderPrefix + '<username>');
-    };
-    obj.server_startup = function() { log('loaded for ' + (cfg.publicUrl || 'dynamic-host') + ', root=' + rootDomain()); };
+    function app() { var c = [obj.meshServer && obj.meshServer.webserver && obj.meshServer.webserver.app, obj.meshServer && obj.meshServer.app, parent && parent.app, parent && parent.webserver && parent.webserver.app]; for (var i = 0; i < c.length; i++) if (c[i] && typeof c[i].use === 'function') return c[i]; return null; }
+    obj.hook_setupHttpHandlers = function() { if (cfg.enabled === false) return; var a = app(); if (!a) { log('Express app not found'); return; } mkdir(rootDomainForFolder(cfg.meshDomainFolder || 'domain')); a.use(cfg.route, function(req, res) { dav(req, res); }); log('registered route ' + cfg.route + ' -> ' + cfg.meshFilesRoot + '/<tenant>/' + cfg.userFolderPrefix + '<username>'); };
+    obj.server_startup = function() { log('loaded for dynamic-host, root=' + cfg.meshFilesRoot); };
 
     obj.copyDetectedAddress = function() {
-        var ua = navigator.userAgent || '';
-        var host = window.location.hostname || window.location.host || 'localhost';
-        var os = 'other';
-        if (/Windows/i.test(ua)) os = 'windows';
-        else if (/Macintosh|Mac OS/i.test(ua)) os = 'macos';
-        else if (/Linux/i.test(ua)) os = 'linux';
+        var ua = navigator.userAgent || '', host = window.location.hostname || window.location.host || 'localhost', os = 'other';
+        if (/Windows/i.test(ua)) os = 'windows'; else if (/Macintosh|Mac OS/i.test(ua)) os = 'macos'; else if (/Linux/i.test(ua)) os = 'linux';
         var address = 'https://' + host + '/drive/';
-        if (os === 'windows') address = '\\\\' + host + '@SSL\\drive';
-        else if (os === 'linux' || os === 'macos') address = 'davs://' + host + '/drive/';
+        if (os === 'windows') address = '\\\\' + host + '@SSL\\drive'; else if (os === 'linux' || os === 'macos') address = 'davs://' + host + '/drive/';
         var where = (os === 'windows') ? 'Windows Explorer' : ((os === 'linux') ? 'gerenciador de arquivos do Linux' : ((os === 'macos') ? 'Finder' : 'navegador'));
         var msg = 'Endereço do Mesh Drive copiado.\n\nCole este endereço no ' + where + ' para abrir seus arquivos:\n\n' + address;
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(address).then(function() { alert(msg); }, function() { prompt('Copie o endereço abaixo:', address); });
-        } else {
-            prompt('Copie o endereço abaixo:', address);
-        }
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(address).then(function() { alert(msg); }, function() { prompt('Copie o endereço abaixo:', address); }); else prompt('Copie o endereço abaixo:', address);
     };
     obj.copyMapCommand = function() {
-        var ua = navigator.userAgent || '';
-        var host = window.location.hostname || window.location.host || 'localhost';
-        var os = 'other';
-        if (/Windows/i.test(ua)) os = 'windows';
-        else if (/Macintosh|Mac OS/i.test(ua)) os = 'macos';
-        else if (/Linux/i.test(ua)) os = 'linux';
+        var ua = navigator.userAgent || '', host = window.location.hostname || window.location.host || 'localhost', os = 'other';
+        if (/Windows/i.test(ua)) os = 'windows'; else if (/Macintosh|Mac OS/i.test(ua)) os = 'macos'; else if (/Linux/i.test(ua)) os = 'linux';
         var command;
         if (os === 'windows') {
-            command = [
-                '$meshHost="' + host.replace(/"/g, '') + '";',
-                '$path="\\\\$($meshHost)@SSL\\drive";',
-                'foreach($l in "M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"){',
-                'if(-not (Get-PSDrive -Name $l -ErrorAction SilentlyContinue)){',
-                'net use "$($l):" $path;',
-                'if($LASTEXITCODE -eq 0){',
-                '$rk="HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\DriveIcons\\$l\\DefaultLabel";',
-                'reg add $rk /ve /d "Mesh Drive" /f | Out-Null;',
-                'try{(New-Object -ComObject Shell.Application).NameSpace("$($l):\\").Self.Name="Mesh Drive"}catch{};',
-                'explorer "$($l):\\"',
-                '};',
-                'break',
-                '}',
-                '}'
-            ].join('');
+            command = ['$meshHost="' + host.replace(/"/g, '') + '";', '$path="\\\\$($meshHost)@SSL\\drive";', 'foreach($l in "M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"){', 'if(-not (Get-PSDrive -Name $l -ErrorAction SilentlyContinue)){', 'net use "$($l):" $path;', 'if($LASTEXITCODE -eq 0){', '$rk="HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\DriveIcons\\$l\\DefaultLabel";', 'reg add $rk /ve /d "Mesh Drive" /f | Out-Null;', 'try{(New-Object -ComObject Shell.Application).NameSpace("$($l):\\").Self.Name="Mesh Drive"}catch{};', 'explorer "$($l):\\"', '};', 'break', '}', '}'].join('');
         } else if (os === 'linux') {
             command = 'URL="davs://' + host.replace(/"/g, '') + '/drive/"; if command -v gio >/dev/null 2>&1; then gio mount "$URL"; fi; if command -v xdg-open >/dev/null 2>&1; then xdg-open "$URL"; else echo "$URL"; fi';
         } else if (os === 'macos') {
             command = 'open "davs://' + host.replace(/"/g, '') + '/drive/"';
-        } else {
-            command = 'https://' + host.replace(/"/g, '') + '/drive/';
-        }
+        } else { command = 'https://' + host.replace(/"/g, '') + '/drive/'; }
         var osName = (os === 'windows') ? 'Windows' : ((os === 'linux') ? 'Linux' : ((os === 'macos') ? 'macOS' : 'sistema atual'));
         var msg = 'Comando copiado para ' + osName + '. Execute no terminal para abrir/mapear o Mesh Drive.';
         var popupText = msg + '\n\n' + command;
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(command).then(function() { alert(popupText); }, function() { prompt(msg, command); });
-        } else {
-            prompt(msg, command);
-        }
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(command).then(function() { alert(popupText); }, function() { prompt(msg, command); }); else prompt(msg, command);
     };
     obj.injectMeshDriveLauncher = function() {
-        try {
-            if (document.getElementById('plugin_meshDriveLauncher')) return;
-            var b = '<span id="plugin_meshDriveLauncher" style="display:inline-flex;align-items:center;gap:6px;margin-left:auto;white-space:nowrap;">' +
-                '<button onclick="pluginHandler.meshdrive.copyDetectedAddress();" style="padding:5px 9px;border-radius:6px;border:1px solid #57606a;background:#f6f8fa;color:#24292f;cursor:pointer;font-size:12px;line-height:16px;">Mesh Drive</button>' +
-                '<button onclick="pluginHandler.meshdrive.copyMapCommand();" style="padding:5px 9px;border-radius:6px;border:1px solid #16803c;background:#16803c;color:white;cursor:pointer;font-size:12px;line-height:16px;">Mapear</button>' +
-                '</span>';
-            var t = null, hs = document.querySelectorAll('h1,h2,h3,div,span');
-            for (var i = 0; i < hs.length; i++) {
-                var txt = (hs[i].innerText || hs[i].textContent || '').trim().toLowerCase();
-                if (txt === 'meus arquivos' || txt === 'my files') { t = hs[i]; break; }
-            }
-            if (t) {
-                t.style.display = 'flex';
-                t.style.alignItems = 'center';
-                t.style.flexWrap = 'nowrap';
-                t.style.width = '100%';
-                t.insertAdjacentHTML('beforeend', b);
-            }
-        } catch (e) { console.log('Mesh Drive My Files injection failed', e); }
+        try { if (document.getElementById('plugin_meshDriveLauncher')) return; var b = '<span id="plugin_meshDriveLauncher" style="display:inline-flex;align-items:center;gap:6px;margin-left:auto;white-space:nowrap;">' + '<button onclick="pluginHandler.meshdrive.copyDetectedAddress();" style="padding:5px 9px;border-radius:6px;border:1px solid #57606a;background:#f6f8fa;color:#24292f;cursor:pointer;font-size:12px;line-height:16px;">Mesh Drive</button>' + '<button onclick="pluginHandler.meshdrive.copyMapCommand();" style="padding:5px 9px;border-radius:6px;border:1px solid #16803c;background:#16803c;color:white;cursor:pointer;font-size:12px;line-height:16px;">Mapear</button>' + '</span>'; var t = null, hs = document.querySelectorAll('h1,h2,h3,div,span'); for (var i = 0; i < hs.length; i++) { var txt = (hs[i].innerText || hs[i].textContent || '').trim().toLowerCase(); if (txt === 'meus arquivos' || txt === 'my files') { t = hs[i]; break; } } if (t) { t.style.display = 'flex'; t.style.alignItems = 'center'; t.style.flexWrap = 'nowrap'; t.style.width = '100%'; t.insertAdjacentHTML('beforeend', b); } } catch (e) { console.log('Mesh Drive My Files injection failed', e); }
     };
     obj.onWebUIStartupEnd = function() { setTimeout(pluginHandler.meshdrive.injectMeshDriveLauncher, 500); setTimeout(pluginHandler.meshdrive.injectMeshDriveLauncher, 2000); };
     obj.goPageEnd = function() { setTimeout(pluginHandler.meshdrive.injectMeshDriveLauncher, 300); };
