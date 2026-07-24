@@ -2,7 +2,7 @@
 
 Mesh Drive expõe o **My Files** do MeshCentral via WebDAV em `/drive`.
 
-Esta versão `2.1.2-test` mantém a rota WebDAV estável e adiciona apenas uma interface separada para administrar o arquivo `shares.json`.
+Esta versão `2.1.3-test` mantém a rota WebDAV estável e adiciona uma interface separada para administrar o arquivo `shares.json`.
 
 ## Instalação
 
@@ -53,7 +53,7 @@ No Windows:
 A interface fica em:
 
 ```text
-https://<HOSTNAME>/meshdrive/shares
+https://<HOSTNAME>/meshdrive
 ```
 
 A interface edita o arquivo:
@@ -79,3 +79,7 @@ Nesta versão de teste, os compartilhamentos ainda **não são aplicados ao WebD
   ]
 }
 ```
+
+## Botão Compartilhamentos
+
+Na tela **Meus Arquivos**, além dos botões **Mesh Drive** e **Mapear**, a versão de teste adiciona o botão **Compartilhamentos**, que abre a interface administrativa em `/meshdrive`.
