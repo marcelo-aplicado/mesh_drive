@@ -1,6 +1,8 @@
 # Mesh Drive
 
-Mesh Drive expõe o **My Files** do MeshCentral via WebDAV em `/drive` e adiciona suporte experimental a compartilhamentos gerenciados por interface gráfica.
+Mesh Drive expõe o **My Files** do MeshCentral via WebDAV em `/drive`.
+
+Esta versão `2.1.2-test` mantém a rota WebDAV estável e adiciona apenas uma interface separada para administrar o arquivo `shares.json`.
 
 ## Instalação
 
@@ -32,35 +34,35 @@ net start WebClient
 sc config WebClient start= auto
 ```
 
-## Compartilhamentos
+## WebDAV
 
-A versão `2.1.1-test` usa o arquivo:
+A rota WebDAV continua sendo:
 
 ```text
-meshcentral-data/plugins/meshdrive/shares.json
+https://<HOSTNAME>/drive/
 ```
 
-A interface gráfica fica em:
+No Windows:
+
+```text
+\\<HOSTNAME>@SSL\drive
+```
+
+## Interface de compartilhamentos
+
+A interface fica em:
 
 ```text
 https://<HOSTNAME>/meshdrive/shares
 ```
 
-A tela solicita autenticação Basic e exige usuário administrador do MeshCentral.
-
-## Comportamento do WebDAV
-
-A raiz `/drive/` continua sendo a área pessoal do usuário, preservando a compatibilidade com o WebDAV do Windows.
-
-A pasta virtual `Compartilhado` aparece como item adicional dentro da raiz:
+A interface edita o arquivo:
 
 ```text
-\\<HOSTNAME>@SSL\drive
-├── arquivos pessoais do usuário
-└── Compartilhado
-    ├── Public
-    └── TI
+meshcentral-data/plugins/meshdrive/shares.json
 ```
+
+Nesta versão de teste, os compartilhamentos ainda **não são aplicados ao WebDAV**. A finalidade é validar o gerenciamento visual e o salvamento do `shares.json` sem alterar a rota `/drive`.
 
 ## Exemplo de shares.json
 
@@ -73,31 +75,7 @@ A pasta virtual `Compartilhado` aparece como item adicional dentro da raiz:
       "access": "read",
       "users": ["*"],
       "groups": []
-    },
-    {
-      "name": "TI",
-      "path": "shares/ti",
-      "access": "write",
-      "users": ["marcelo", "lucas"],
-      "groups": []
     }
   ]
 }
-```
-
-## Campos
-
-- `name`: nome exibido em `Compartilhado`.
-- `path`: pasta física relativa ao diretório do tenant.
-- `access`: `read` ou `write`.
-- `users`: usuários permitidos. Use `*` para todos.
-- `groups`: grupos permitidos. O suporte depende dos dados de grupo disponíveis no usuário do MeshCentral.
-
-## Multi-Tenancy
-
-Cada tenant usa seu próprio diretório físico. Exemplo:
-
-```text
-mesh.aplicado.com.br     -> meshcentral-files/domain
-mesh.crsbrands.com.br   -> meshcentral-files/domain-crsbrands
 ```
