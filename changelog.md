@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.5
+- Adicionada tentativa de autenticação nativa do MeshCentral antes da validação PBKDF2 manual.
+- O plugin procura métodos internos de autenticação no `webserver`/`meshServer` e registra quais métodos foram encontrados.
+- Mantido fallback PBKDF2 manual, com logs de diagnóstico, caso nenhuma função nativa compatível esteja disponível.
+- Mantida resolução Multi-Tenancy por `config.domains[*].dns` / `certUrl`.
+
 ## 1.2.4
 - Ativados logs detalhados de autenticação WebDAV para diagnóstico.
 - Os logs mostram host, domínio resolvido, usuário encontrado, presença de salt/hash, tamanhos dos hashes e resultado da comparação, sem registrar senha ou hash completo.

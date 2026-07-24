@@ -90,6 +90,95 @@ module.exports.meshdrive = function (parent) {
     function hashLen(h) { try { var b = Buffer.from(String(h || ''), 'base64'); if (b && b.length > 0) return b.length; } catch (e) {} return 64; }
     function pbkdf2(pw, salt, stored) { return new Promise(function(resolve) { try { crypto.pbkdf2(pw, salt, cfg.passwordIterations, hashLen(stored), 'sha384', function(err, h) { if (err) return resolve(null); resolve(h.toString('base64')); }); } catch (e) { resolve(null); } }); }
 
+    function getContainerPath(name) {
+        if (name === 'webserver') return obj.meshServer && obj.meshServer.webserver;
+        if (name === 'meshServer') return obj.meshServer;
+        if (name === 'parent') return parent;
+        if (name === 'parentParent') return parent && parent.parent;
+        return null;
+    }
+    function listPossibleNativeAuthMethods() {
+        var names = ['webserver', 'meshServer', 'parent', 'parentParent'];
+        var found = [];
+        names.forEach(function(containerName) {
+            var c = getContainerPath(containerName);
+            if (!c) return;
+            try {
+                Object.keys(c).forEach(function(k) {
+                    var lk = k.toLowerCase();
+                    if (typeof c[k] === 'function' && (lk.indexOf('auth') >= 0 || lk.indexOf('login') >= 0 || lk.indexOf('pass') >= 0 || lk.indexOf('verify') >= 0 || lk.indexOf('valid') >= 0)) {
+                        found.push(containerName + '.' + k);
+                    }
+                });
+            } catch (e) {}
+        });
+        return found;
+    }
+    function nativeResultOk(result) {
+        if (result === true) return true;
+        if (result === false || result == null) return false;
+        if (typeof result === 'string') return result.toLowerCase() === 'ok' || result.toLowerCase() === 'true';
+        if (typeof result === 'object') {
+            if (result.ok === true || result.success === true || result.valid === true || result.authenticated === true) return true;
+            if (result._id || result.userid || result.user || result.name) return true;
+        }
+        return false;
+    }
+    function callNativeFunction(fn, args, label) {
+        return new Promise(function(resolve) {
+            var done = false;
+            function finish(v) { if (!done) { done = true; resolve(v); } }
+            var timeout = setTimeout(function() { finish({ status: 'timeout' }); }, 300);
+            var cb = function(a, b, c) {
+                clearTimeout(timeout);
+                if (a && (a instanceof Error || (typeof a === 'object' && a.message && !nativeResultOk(a)))) { finish({ status: 'callback-error', result: a }); return; }
+                if (arguments.length > 1) finish({ status: 'callback', result: b }); else finish({ status: 'callback', result: a });
+            };
+            try {
+                var r = fn.apply(null, args.concat([cb]));
+                if (r && typeof r.then === 'function') {
+                    r.then(function(v) { clearTimeout(timeout); finish({ status: 'promise', result: v }); }).catch(function(e) { clearTimeout(timeout); finish({ status: 'promise-error', result: e }); });
+                } else if (r !== undefined) {
+                    clearTimeout(timeout); finish({ status: 'return', result: r });
+                }
+            } catch (e) { clearTimeout(timeout); finish({ status: 'throw', result: e }); }
+        });
+    }
+    async function tryNativeMeshAuth(username, password, ctx, userDoc) {
+        var methods = [
+            'validateUser', 'ValidateUser', 'validateUserPassword', 'verifyUserPassword', 'checkUserPassword', 'checkUserPass', 'authenticateUser', 'authUser', 'loginUser', 'checkUserLogin', 'validateLogin'
+        ];
+        var containers = ['webserver', 'meshServer', 'parent', 'parentParent'];
+        var user = norm(username);
+        var domainId = (ctx && ctx.id) || '';
+        var userId = (userDoc && userDoc._id) || (domainId ? ('user/' + domainId + '/' + user) : ('user//' + user));
+        if (cfg.debugMultiTenant) log('native auth available methods=' + listPossibleNativeAuthMethods().join('|'));
+        for (var ci = 0; ci < containers.length; ci++) {
+            var c = getContainerPath(containers[ci]);
+            if (!c) continue;
+            for (var mi = 0; mi < methods.length; mi++) {
+                var name = methods[mi];
+                if (typeof c[name] !== 'function') continue;
+                var fn = c[name];
+                var variants = [
+                    [domainId, user, password],
+                    [user, password, domainId],
+                    [userId, password],
+                    [userDoc, password],
+                    [{ domain: domainId, userid: userId, username: user, user: userDoc, password: password }],
+                    [user, password]
+                ];
+                for (var vi = 0; vi < variants.length; vi++) {
+                    var label = containers[ci] + '.' + name + '#' + vi;
+                    var r = await callNativeFunction(fn, variants[vi], label);
+                    if (cfg.debugMultiTenant) log('native auth tried ' + label + ', status=' + r.status + ', ok=' + nativeResultOk(r.result));
+                    if (nativeResultOk(r.result)) return true;
+                }
+            }
+        }
+        return null;
+    }
+
     async function findUser(username, ctx) {
         var u = norm(username), ids = [];
         if (ctx && ctx.id) { addUnique(ids, 'user/' + ctx.id + '/' + u); addUnique(ids, 'user/' + ctx.id + '/user-' + u); }
@@ -106,6 +195,14 @@ module.exports.meshdrive = function (parent) {
         if (!d) { if (cfg.debugMultiTenant) log('auth failed: user document not found for username=' + norm(username)); return null; }
         if (cfg.debugMultiTenant) log('auth user doc=' + (d._id || f.id || '') + ', docDomain=' + (d.domain || '') + ', siteadmin=' + d.siteadmin + ', locked=' + (d.locked ? 'true' : 'false'));
         if (d.locked || d.siteadmin === -1) { if (cfg.debugMultiTenant) log('auth failed: user locked or disabled id=' + (d._id || f.id || '')); return null; }
+
+        var nativeOk = await tryNativeMeshAuth(username, password, ctx, d);
+        if (nativeOk === true) {
+            if (cfg.debugMultiTenant) log('auth success native id=' + (d._id || f.id || '') + ', username=' + f.username + ', folder=' + ((ctx && ctx.folder) || ''));
+            return { id: d._id || f.id, username: f.username, doc: d, domainContext: ctx };
+        }
+        if (cfg.debugMultiTenant) log('native auth unavailable or unsuccessful, falling back to manual PBKDF2 id=' + (d._id || f.id || ''));
+
         var salt = d.salt, stored = d.hash || d.passhash || d.pwhash || d.passwordhash;
         if (cfg.debugMultiTenant) log('auth material id=' + (d._id || f.id || '') + ', hasSalt=' + (!!salt) + ', hasHash=' + (!!stored) + ', storedLen=' + String(stored || '').length + ', saltLen=' + String(salt || '').length + ', iterations=' + cfg.passwordIterations);
         if (!salt || !stored) { if (cfg.debugMultiTenant) log('auth failed: missing salt/hash id=' + (d._id || f.id || '')); return null; }
@@ -115,7 +212,7 @@ module.exports.meshdrive = function (parent) {
         var matchLower = tseq(String(stored).toLowerCase(), String(computed).toLowerCase());
         if (cfg.debugMultiTenant) log('auth compare id=' + (d._id || f.id || '') + ', computedLen=' + String(computed || '').length + ', matchExact=' + matchExact + ', matchLower=' + matchLower);
         if (!matchExact && !matchLower) { if (cfg.debugMultiTenant) log('auth failed: hash mismatch id=' + (d._id || f.id || '')); return null; }
-        if (cfg.debugMultiTenant) log('auth success id=' + (d._id || f.id || '') + ', username=' + f.username + ', folder=' + ((ctx && ctx.folder) || ''));
+        if (cfg.debugMultiTenant) log('auth success manual id=' + (d._id || f.id || '') + ', username=' + f.username + ', folder=' + ((ctx && ctx.folder) || ''));
         return { id: d._id || f.id, username: f.username, doc: d, domainContext: ctx };
     }
     function authReq(res) { res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Mesh Drive"', 'Content-Type': 'text/plain; charset=utf-8' }); res.end('Authentication required'); }

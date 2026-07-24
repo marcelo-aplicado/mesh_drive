@@ -70,6 +70,19 @@ Também é possível forçar mapeamento manual:
 - **Mapear**: copia um comando para abrir/mapear o Mesh Drive conforme o sistema operacional.
 
 
+
+## Diagnóstico de autenticação nativa
+
+A versão 1.2.5 tenta usar autenticação nativa do MeshCentral antes da validação PBKDF2 manual.
+
+Para acompanhar os logs:
+
+```bash
+journalctl -u meshcentral -f | grep -i "Mesh Drive"
+```
+
+Os logs indicam os métodos internos encontrados e se a autenticação nativa conseguiu validar o usuário. Senhas e hashes completos não são exibidos.
+
 ## Diagnóstico de autenticação WebDAV
 
 A versão 1.2.4 inclui logs detalhados para diagnosticar autenticação Basic/WebDAV em ambientes Multi-Tenancy.
