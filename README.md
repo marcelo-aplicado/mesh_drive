@@ -1,44 +1,30 @@
 # Mesh Drive
 
-Mesh Drive expõe o **My Files** do MeshCentral via WebDAV em `/drive` e adiciona uma rota experimental separada `/shared` para compartilhamentos.
+Mesh Drive expõe o **My Files** do MeshCentral via WebDAV em `/drive` e usa a rota experimental `/shared` para compartilhamentos configurados em `shares.json`.
 
-## Instalação
+## Rotas
 
-Use na tela de plugins do MeshCentral:
-
-```text
-https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/config.json
-```
-
-## Rotas WebDAV
-
-Área pessoal estável:
+Área pessoal:
 
 ```text
-https://<HOSTNAME>/drive/
 \\<HOSTNAME>@SSL\drive
 ```
 
-Compartilhamentos experimentais:
+Compartilhamentos:
 
 ```text
-https://<HOSTNAME>/shared/
 \\<HOSTNAME>@SSL\shared
 ```
 
-## Interface administrativa
+Interface administrativa:
 
 ```text
 https://<HOSTNAME>/meshdrive
 ```
 
-A interface edita:
+## Modelo de permissões
 
-```text
-meshcentral-data/plugins/meshdrive/shares.json
-```
-
-## Exemplo de shares.json
+A versão `2.2.2-test` usa campos separados para leitura e gravação:
 
 ```json
 {
@@ -46,17 +32,30 @@ meshcentral-data/plugins/meshdrive/shares.json
     {
       "name": "Public",
       "path": "public",
-      "access": "read",
-      "users": ["*"],
-      "groups": []
-    },
-    {
-      "name": "TI",
-      "path": "shares/ti",
-      "access": "write",
-      "users": ["marcelo", "lucas"],
-      "groups": []
+      "readUsers": ["*"],
+      "writeUsers": ["marcelo"],
+      "readGroups": [],
+      "writeGroups": []
     }
   ]
 }
+```
+
+## Campos
+
+- `name`: nome exibido em `/shared`.
+- `path`: diretório físico relativo ao tenant atual.
+- `readUsers`: usuários com leitura.
+- `writeUsers`: usuários com gravação. Gravação também implica leitura.
+- `readGroups`: grupos com leitura.
+- `writeGroups`: grupos com gravação. Gravação também implica leitura.
+- Use `*` em `readUsers` para liberar leitura para todos os usuários autenticados.
+
+## Multi-Tenancy
+
+Cada domínio usa seu próprio diretório físico:
+
+```text
+mesh.aplicado.com.br    -> meshcentral-files/domain
+mesh.crsbrands.com.br  -> meshcentral-files/domain-crsbrands
 ```

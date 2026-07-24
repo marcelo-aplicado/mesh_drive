@@ -1,10 +1,12 @@
 # Changelog
 
-## 2.2.1-test
-- Corrigido o salvamento de usuários na interface `/meshdrive`.
-- O frontend agora coleta diretamente os campos da tela no momento de salvar, em vez de depender de eventos `onchange`.
-- Usuários como `marcelo` deixam de ser substituídos indevidamente por `*`.
-- Mantida rota WebDAV estável `/drive` e rota experimental `/shared`.
+## 2.2.2-test
+- Alterado modelo de permissões: removido `access` como configuração principal.
+- Adicionados campos `readUsers`, `writeUsers`, `readGroups` e `writeGroups`.
+- A interface `/meshdrive` agora possui campos separados para usuários/grupos com leitura e usuários/grupos com gravação.
+- Regra aplicada: usuários/grupos em gravação também recebem leitura; usuários/grupos em leitura ficam somente leitura.
+- Mantida compatibilidade parcial com shares antigos que usam `access`, `users` e `groups`.
+- Mantidas rotas `/drive`, `/shared` e `/meshdrive`.
 
-## 2.2.0-test
-- Adicionada rota WebDAV experimental `/shared` para compartilhamentos configurados em `shares.json`.
+## 2.2.1-test
+- Corrigido salvamento de usuários na interface.

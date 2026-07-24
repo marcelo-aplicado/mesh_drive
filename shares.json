@@ -3,9 +3,10 @@
     {
       "name": "Public",
       "path": "public",
-      "access": "read",
-      "users": ["*"],
-      "groups": []
+      "readUsers": ["*"],
+      "writeUsers": [],
+      "readGroups": [],
+      "writeGroups": []
     }
   ]
 }
