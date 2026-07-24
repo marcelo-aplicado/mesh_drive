@@ -99,7 +99,25 @@ module.exports.meshdrive = function (parent) {
         if (cfg.debugMultiTenant) log('tenant user not found username=' + u + ', tried=' + ids.join('|'));
         return { id: ids[0] || ('user//' + u), doc: null, username: u, domainContext: ctx };
     }
-    async function validate(username, password, ctx) { if (cfg.allowPublic === true) return { id: 'public', username: 'public', domainContext: ctx }; var f = await findUser(username, ctx), d = f.doc; if (!d) return null; if (d.locked || d.siteadmin === -1) return null; var salt = d.salt, stored = d.hash || d.passhash || d.pwhash || d.passwordhash; if (!salt || !stored) return null; var computed = await pbkdf2(password, salt, stored); if (!computed) return null; if (!tseq(stored, computed) && !tseq(String(stored).toLowerCase(), String(computed).toLowerCase())) return null; return { id: d._id || f.id, username: f.username, doc: d, domainContext: ctx }; }
+    async function validate(username, password, ctx) {
+        if (cfg.allowPublic === true) return { id: 'public', username: 'public', domainContext: ctx };
+        if (cfg.debugMultiTenant) log('auth start username=' + norm(username) + ', host=' + ((ctx && ctx.host) || '') + ', domainId=' + ((ctx && ctx.id) || '') + ', folder=' + ((ctx && ctx.folder) || ''));
+        var f = await findUser(username, ctx), d = f.doc;
+        if (!d) { if (cfg.debugMultiTenant) log('auth failed: user document not found for username=' + norm(username)); return null; }
+        if (cfg.debugMultiTenant) log('auth user doc=' + (d._id || f.id || '') + ', docDomain=' + (d.domain || '') + ', siteadmin=' + d.siteadmin + ', locked=' + (d.locked ? 'true' : 'false'));
+        if (d.locked || d.siteadmin === -1) { if (cfg.debugMultiTenant) log('auth failed: user locked or disabled id=' + (d._id || f.id || '')); return null; }
+        var salt = d.salt, stored = d.hash || d.passhash || d.pwhash || d.passwordhash;
+        if (cfg.debugMultiTenant) log('auth material id=' + (d._id || f.id || '') + ', hasSalt=' + (!!salt) + ', hasHash=' + (!!stored) + ', storedLen=' + String(stored || '').length + ', saltLen=' + String(salt || '').length + ', iterations=' + cfg.passwordIterations);
+        if (!salt || !stored) { if (cfg.debugMultiTenant) log('auth failed: missing salt/hash id=' + (d._id || f.id || '')); return null; }
+        var computed = await pbkdf2(password, salt, stored);
+        if (!computed) { if (cfg.debugMultiTenant) log('auth failed: pbkdf2 returned null id=' + (d._id || f.id || '')); return null; }
+        var matchExact = tseq(stored, computed);
+        var matchLower = tseq(String(stored).toLowerCase(), String(computed).toLowerCase());
+        if (cfg.debugMultiTenant) log('auth compare id=' + (d._id || f.id || '') + ', computedLen=' + String(computed || '').length + ', matchExact=' + matchExact + ', matchLower=' + matchLower);
+        if (!matchExact && !matchLower) { if (cfg.debugMultiTenant) log('auth failed: hash mismatch id=' + (d._id || f.id || '')); return null; }
+        if (cfg.debugMultiTenant) log('auth success id=' + (d._id || f.id || '') + ', username=' + f.username + ', folder=' + ((ctx && ctx.folder) || ''));
+        return { id: d._id || f.id, username: f.username, doc: d, domainContext: ctx };
+    }
     function authReq(res) { res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Mesh Drive"', 'Content-Type': 'text/plain; charset=utf-8' }); res.end('Authentication required'); }
     async function auth(req, res) { var ctx = resolveDomainContext(req); var b = parseBasic(req); if (!b && cfg.allowPublic !== true) { authReq(res); return null; } var u = await validate(b ? b.username : 'public', b ? b.password : '', ctx); if (!u) { authReq(res); return null; } return u; }
     function userRoot(u) { var ctx = (u && u.domainContext) || { folder: cfg.meshDomainFolder || 'domain' }; var r = path.join(rootDomainForFolder(ctx.folder), cfg.userFolderPrefix + norm(u.username || u.id || 'user')); if (cfg.defaultUserSubFolder) r = path.join(r, safe(cfg.defaultUserSubFolder)); mkdir(r); if (cfg.debugMultiTenant) log('tenant userRoot=' + r); return path.resolve(r); }

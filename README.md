@@ -69,6 +69,19 @@ Também é possível forçar mapeamento manual:
 - **Mesh Drive**: copia o endereço adequado ao sistema operacional.
 - **Mapear**: copia um comando para abrir/mapear o Mesh Drive conforme o sistema operacional.
 
+
+## Diagnóstico de autenticação WebDAV
+
+A versão 1.2.4 inclui logs detalhados para diagnosticar autenticação Basic/WebDAV em ambientes Multi-Tenancy.
+
+Para acompanhar os logs:
+
+```bash
+journalctl -u meshcentral -f | grep -i "Mesh Drive"
+```
+
+Os logs não exibem a senha nem o hash completo do usuário.
+
 ## Teste WebDAV
 
 ```bash
