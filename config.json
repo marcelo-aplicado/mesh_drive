@@ -1,9 +1,9 @@
 {
   "name": "Mesh Drive",
   "shortName": "meshdrive",
-  "version": "2.2.0-test",
+  "version": "2.2.1-test",
   "author": "Marcelo Henrique da Silva / Microsoft Copilot",
-  "description": "Mesh Drive WebDAV stable route plus experimental /shared WebDAV route using shares.json.",
+  "description": "Mesh Drive WebDAV stable route plus experimental /shared WebDAV route using shares.json, with fixed share manager user saving.",
   "hasAdminPanel": false,
   "homepage": "https://github.com/marcelo-aplicado/mesh_drive",
   "changelogUrl": "https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/changelog.md",

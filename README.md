@@ -10,28 +10,6 @@ Use na tela de plugins do MeshCentral:
 https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/config.json
 ```
 
-## Pré-requisito
-
-No `config.json` do MeshCentral:
-
-```json
-{
-  "plugins": {
-    "enabled": true
-  }
-}
-```
-
-## Requisito para Windows
-
-O WebDAV no Windows depende do serviço **Cliente Web (WebClient)**:
-
-```cmd
-sc query WebClient
-net start WebClient
-sc config WebClient start= auto
-```
-
 ## Rotas WebDAV
 
 Área pessoal estável:
@@ -48,17 +26,13 @@ https://<HOSTNAME>/shared/
 \\<HOSTNAME>@SSL\shared
 ```
 
-A rota `/drive` não foi alterada nesta versão.
-
 ## Interface administrativa
-
-A interface fica em:
 
 ```text
 https://<HOSTNAME>/meshdrive
 ```
 
-A interface edita o arquivo:
+A interface edita:
 
 ```text
 meshcentral-data/plugins/meshdrive/shares.json
@@ -86,21 +60,3 @@ meshcentral-data/plugins/meshdrive/shares.json
   ]
 }
 ```
-
-## Permissões
-
-- `read`: permite listar e baixar arquivos, bloqueando escrita.
-- `write`: permite leitura e gravação.
-- `users`: lista de usuários autorizados. Use `*` para todos.
-- `groups`: experimental, depende de como os grupos aparecem no usuário do MeshCentral.
-
-## Multi-Tenancy
-
-Cada tenant usa seu próprio diretório físico:
-
-```text
-mesh.aplicado.com.br    -> meshcentral-files/domain
-mesh.crsbrands.com.br  -> meshcentral-files/domain-crsbrands
-```
-
-Um share com `path: "public"` aponta para `public` dentro do diretório do tenant atual.
