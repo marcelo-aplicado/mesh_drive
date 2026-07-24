@@ -1,9 +1,9 @@
 {
   "name": "Mesh Drive",
   "shortName": "meshdrive",
-  "version": "1.2.5",
+  "version": "1.2.4",
   "author": "Marcelo Henrique da Silva / Microsoft Copilot",
-  "description": "Expose MeshCentral My Files via WebDAV with OS-aware shortcuts, multi-tenancy and native MeshCentral authentication fallback.",
+  "description": "Expose MeshCentral My Files via WebDAV with OS-aware shortcuts, multi-tenancy and native MeshCentral authentication.",
   "hasAdminPanel": false,
   "homepage": "https://github.com/marcelo-aplicado/mesh_drive",
   "changelogUrl": "https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/changelog.md",

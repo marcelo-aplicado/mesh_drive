@@ -25,7 +25,7 @@ module.exports.meshdrive = function (parent) {
         allowPublic: false,
         passwordIterations: 12000,
         hostDomainMap: {},
-        debugMultiTenant: true
+        debugMultiTenant: false
     }, settings.meshDrive || settings.meshdrive || {});
 
     function log(m) { try { obj.debug('PLUGIN', 'Mesh Drive', m); } catch (e) {} try { console.log('PLUGIN: Mesh Drive: ' + m); } catch (e) {} }
