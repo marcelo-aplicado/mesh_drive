@@ -1,0 +1,11 @@
+{
+  "shares": [
+    {
+      "name": "Public",
+      "path": "public",
+      "access": "read",
+      "users": ["*"],
+      "groups": []
+    }
+  ]
+}

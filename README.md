@@ -1,10 +1,18 @@
 # Mesh Drive
 
-Mesh Drive expõe o **My Files** do MeshCentral via WebDAV em `/drive` e adiciona botões rápidos em **Meus Arquivos** para copiar o endereço WebDAV e copiar um comando de mapeamento conforme o sistema operacional.
+Mesh Drive expõe o **My Files** do MeshCentral via WebDAV em `/drive` e adiciona suporte experimental a compartilhamentos gerenciados por interface gráfica.
 
-## Pré-requisito: ativar plugins no MeshCentral
+## Instalação
 
-Antes de instalar o plugin, confirme que os plugins estão habilitados no `config.json` do MeshCentral:
+Use na tela de plugins do MeshCentral:
+
+```text
+https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/config.json
+```
+
+## Pré-requisito
+
+No `config.json` do MeshCentral:
 
 ```json
 {
@@ -14,109 +22,68 @@ Antes de instalar o plugin, confirme que os plugins estão habilitados no `confi
 }
 ```
 
-Depois de alterar o `config.json`, reinicie o serviço do MeshCentral.
-
-## Instalação
-
-Na tela de plugins do MeshCentral, use exatamente este endereço para instalar o plugin:
-
-```text
-https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/config.json
-```
-
 ## Requisito para Windows
 
-O acesso WebDAV no Windows depende do serviço **Cliente Web (WebClient)**. Em muitas instalações, o serviço fica como **Manual** e pode estar parado.
-
-Verifique:
+O WebDAV no Windows depende do serviço **Cliente Web (WebClient)**:
 
 ```cmd
 sc query WebClient
-```
-
-Inicie, se necessário:
-
-```cmd
 net start WebClient
-```
-
-Opcionalmente, configure como automático:
-
-```cmd
 sc config WebClient start= auto
 ```
 
-Sem esse serviço, o Windows pode apresentar erros como:
+## Compartilhamentos
+
+A versão `2.1.0-test` usa o arquivo:
 
 ```text
-Erro de sistema 67
-O nome da rede não foi encontrado
+meshcentral-data/plugins/meshdrive/shares.json
 ```
 
-## Recursos
+A interface gráfica fica em:
 
-- WebDAV: `https://<HOSTNAME>/drive/`
-- O hostname é detectado automaticamente a partir do servidor MeshCentral acessado no navegador.
-- Em **Meus Arquivos**, dois botões são exibidos:
-  - **Mesh Drive**: copia o endereço adequado ao sistema operacional.
-  - **Mapear**: copia um comando para abrir/mapear o Mesh Drive conforme o sistema operacional.
-
-## Comportamento por sistema operacional
-
-- **Windows**
-  - `Mesh Drive`: copia `\<HOSTNAME>@SSL\drive`.
-  - `Mapear`: copia um comando PowerShell que tenta mapear a primeira letra livre entre `M:` e `Z:` e nomear a unidade como **Mesh Drive**.
-
-- **Linux**
-  - `Mesh Drive`: copia `davs://<HOSTNAME>/drive/`.
-  - `Mapear`: copia um comando que tenta usar `gio mount` e `xdg-open` para montar/abrir o WebDAV no ambiente gráfico.
-
-- **macOS**
-  - `Mesh Drive`: copia `davs://<HOSTNAME>/drive/`.
-  - `Mapear`: copia o comando `open "davs://<HOSTNAME>/drive/"`.
-
-## Multi-Tenancy
-
-O Mesh Drive resolve o tenant usando o hostname da requisição WebDAV e a configuração `domains` do MeshCentral.
-
-Exemplo no `config.json` do MeshCentral:
-
-```json
-"CRSBrands": {
-  "dns": "mesh.crsbrands.com.br",
-  "certUrl": "https://mesh.crsbrands.com.br"
-}
+```text
+https://<HOSTNAME>/meshdrive/shares
 ```
 
-Com esse exemplo, o acesso por `mesh.crsbrands.com.br` autentica usuários como `user/crsbrands/<usuario>` e usa arquivos em `meshcentral-files/domain-crsbrands`.
+A tela solicita autenticação Basic e exige usuário administrador do MeshCentral.
 
-Também é possível forçar mapeamento manual:
+## Exemplo de shares.json
 
 ```json
 {
-  "settings": {
-    "meshDrive": {
-      "hostDomainMap": {
-        "mesh.crsbrands.com.br": "crsbrands",
-        "mesh.aplicado.com.br": "domain"
-      }
+  "shares": [
+    {
+      "name": "Public",
+      "path": "public",
+      "access": "read",
+      "users": ["*"],
+      "groups": []
+    },
+    {
+      "name": "TI",
+      "path": "shares/ti",
+      "access": "write",
+      "users": ["marcelo", "lucas"],
+      "groups": []
     }
-  }
+  ]
 }
 ```
 
-## Teste WebDAV
+## Campos
 
-```bash
-curl -k -i -u <usuario> -X PROPFIND -H "Depth: 1" https://<HOSTNAME>/drive/
-```
+- `name`: nome exibido em `Compartilhado`.
+- `path`: pasta física relativa ao diretório do tenant.
+- `access`: `read` ou `write`.
+- `users`: usuários permitidos. Use `*` para todos.
+- `groups`: grupos permitidos. O suporte depende dos dados de grupo disponíveis no usuário do MeshCentral.
 
-Resposta esperada:
+## Multi-Tenancy
+
+Cada tenant usa seu próprio diretório físico. Exemplo:
 
 ```text
-HTTP/1.1 207 Multi-Status
+mesh.aplicado.com.br      -> meshcentral-files/domain
+mesh.crsbrands.com.br    -> meshcentral-files/domain-crsbrands
 ```
-
-## Licença
-
-MIT License
