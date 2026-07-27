@@ -1,12 +1,11 @@
 # Changelog
 
-## 2.3.0-test
-- Criada rota única WebDAV `/drive` para arquivos pessoais e compartilhamentos.
-- A raiz de `/drive` passa a exibir uma pasta virtual `Pessoal` e os compartilhamentos permitidos do tenant.
-- Removida a necessidade de acessar `/shared` para compartilhamentos.
-- A configuração de compartilhamentos continua isolada por tenant: `shares-domain.json`, `shares-crsbrands.json`, etc.
-- Mantido modelo ACL com `readUsers`, `writeUsers`, `readGroups` e `writeGroups`.
-- Mantida interface administrativa `/meshdrive`.
+## 2.4.0-test
+- Adicionada rota experimental CardDAV em `/carddav`.
+- Cada compartilhamento permitido passa a aparecer como um address book CardDAV.
+- Contatos são armazenados como arquivos `.vcf` dentro do diretório físico do compartilhamento.
+- Implementados métodos básicos CardDAV/WebDAV: `OPTIONS`, `PROPFIND`, `REPORT`, `GET`, `PUT` e `DELETE`.
+- Mantida rota unificada `/drive`, interface `/meshdrive`, ACL por tenant e arquivos `shares-<tenant>.json`.
 
-## 2.2.3-test
-- Isolamento de compartilhamentos por tenant.
+## 2.3.0-test
+- Rota única `/drive` para arquivos pessoais e compartilhamentos.

@@ -1,9 +1,9 @@
 {
   "name": "Mesh Drive",
   "shortName": "meshdrive",
-  "version": "2.3.0-test",
+  "version": "2.4.0-test",
   "author": "Marcelo Henrique da Silva / Microsoft Copilot",
-  "description": "Mesh Drive single WebDAV route /drive with personal and shared folders in one view, tenant-isolated shares and ACL read/write users/groups model.",
+  "description": "Mesh Drive unified /drive WebDAV route with tenant-isolated shares and experimental CardDAV route at /carddav.",
   "hasAdminPanel": false,
   "homepage": "https://github.com/marcelo-aplicado/mesh_drive",
   "changelogUrl": "https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/changelog.md",

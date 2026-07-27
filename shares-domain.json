@@ -7,6 +7,14 @@
       "writeUsers": [],
       "readGroups": [],
       "writeGroups": []
+    },
+    {
+      "name": "Contatos",
+      "path": "contacts",
+      "readUsers": ["*"],
+      "writeUsers": [],
+      "readGroups": [],
+      "writeGroups": []
     }
   ]
 }

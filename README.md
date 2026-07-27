@@ -1,59 +1,56 @@
 # Mesh Drive
 
-Mesh Drive expõe arquivos pessoais e compartilhamentos em uma única rota WebDAV:
+Mesh Drive expõe arquivos pessoais e compartilhamentos em `/drive` e adiciona suporte experimental CardDAV em `/carddav`.
+
+## Rotas principais
+
+WebDAV unificado:
 
 ```text
 \\<HOSTNAME>@SSL\drive
 ```
 
-## Estrutura no WebDAV
-
-Ao acessar `/drive`, o usuário verá:
+CardDAV experimental:
 
 ```text
-Pessoal
-Public
-TI
-Financeiro
+https://<HOSTNAME>/carddav
 ```
 
-- `Pessoal`: área privada do usuário autenticado.
-- Demais pastas: compartilhamentos permitidos pelo arquivo de configuração do tenant.
-
-## Interface administrativa
+Interface administrativa:
 
 ```text
 https://<HOSTNAME>/meshdrive
 ```
 
-## Configuração por tenant
+## CardDAV experimental
 
-Exemplos:
+Cada compartilhamento permitido no `shares-<tenant>.json` aparece como um address book CardDAV.
 
-```text
-meshcentral-data/plugins/meshdrive/shares-domain.json
-meshcentral-data/plugins/meshdrive/shares-crsbrands.json
-```
-
-## Modelo de permissões
+Exemplo:
 
 ```json
 {
-  "shares": [
-    {
-      "name": "Public",
-      "path": "public",
-      "readUsers": ["*"],
-      "writeUsers": ["marcelo"],
-      "readGroups": [],
-      "writeGroups": []
-    }
-  ]
+  "name": "Contatos",
+  "path": "contacts",
+  "readUsers": ["*"],
+  "writeUsers": ["marcelo"],
+  "readGroups": [],
+  "writeGroups": []
 }
 ```
 
-- `readUsers`: usuários com leitura.
-- `writeUsers`: usuários com gravação. Gravação também implica leitura.
-- `readGroups`: grupos com leitura.
-- `writeGroups`: grupos com gravação. Gravação também implica leitura.
-- Use `*` em `readUsers` para liberar leitura para todos os usuários autenticados.
+Arquivos físicos:
+
+```text
+meshcentral-files/domain/contacts/*.vcf
+```
+
+No DAVx5, teste a URL base:
+
+```text
+https://<HOSTNAME>/carddav
+```
+
+## Observação
+
+Esta é uma implementação de teste para validar descoberta, leitura e gravação básica de `.vcf`. Recursos avançados de CardDAV podem exigir ajustes depois dos testes reais com DAVx5.
