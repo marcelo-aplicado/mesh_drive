@@ -1,15 +1,14 @@
 {
   "name": "Mesh Drive",
   "shortName": "meshdrive",
-  "version": "2.4.7-test",
+  "version": "1.2.4",
   "author": "Marcelo Henrique da Silva / Microsoft Copilot",
-  "description": "Mesh Drive root-personal mode with clean default Contatos share for all tenants, /carddav and anonymous read support.",
+  "description": "Mesh Drive plugin for MeshCentral with /drive WebDAV, /carddav CardDAV, tenant-based sharing configuration in one shares.json file, ACLs and anonymous read support.",
   "hasAdminPanel": false,
   "homepage": "https://github.com/marcelo-aplicado/mesh_drive",
-  "changelogUrl": "https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/changelog.md",
-  "configUrl": "https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/config.json",
-  "downloadUrl": "https://github.com/marcelo-aplicado/mesh_drive/archive/refs/heads/main.zip",
-  "repository": { "type": "git", "url": "https://github.com/marcelo-aplicado/mesh_drive.git" },
-  "versionHistoryUrl": "https://api.github.com/repos/marcelo-aplicado/mesh_drive/tags",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marcelo-aplicado/mesh_drive.git"
+  },
   "meshCentralCompat": ">=1.1.35"
 }

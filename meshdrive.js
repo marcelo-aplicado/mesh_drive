@@ -40,10 +40,31 @@ module.exports.meshdrive = function (parent) {
   function domainFolderFromId(id){ id=String(id||'').trim().toLowerCase(); if(!id || id==='domain' || id==='default') return 'domain'; if(id.indexOf('domain-')===0) return slug(id); return 'domain-'+slug(id); }
   function domainIdFromFolder(folder){ folder=String(folder||'domain').toLowerCase(); if(folder==='domain') return ''; if(folder.indexOf('domain-')===0) return folder.substring(7); return folder; }
   function tenantKey(ctx){ const id=((ctx&&ctx.id)||'').toLowerCase(); return id?slug(id):'domain'; }
-  function sharesFileForContext(ctx){ return path.join(pluginDir,'shares-'+tenantKey(ctx)+'.json'); }
-  function defaultShares(){ return { shares:[{ name:'Contatos', path:'contatos', readUsers:['*'], writeUsers:['marcelo'], readGroups:[], writeGroups:['TI'], anonymousAccess:'read' }] }; }
+  function sharesFileForContext(ctx){ return path.join(pluginDir,'shares.json'); }
+  function defaultShareList(){ return [{ name:'Contatos', path:'contatos', readUsers:['*'], writeUsers:['marcelo'], readGroups:[], writeGroups:['TI'], anonymousAccess:'read' }]; }
+  function defaultShares(){
+    const domains={};
+    ['domain','crsbrands','mhs','fastcopy'].forEach(k=>{ domains[k]={ shares: defaultShareList() }; });
+    return { domains };
+  }
   function ensureSharesFile(ctx){ const f=sharesFileForContext(ctx); if(!fs.existsSync(f)){ mkdir(pluginDir); fs.writeFileSync(f,JSON.stringify(defaultShares(),null,2)); } return f; }
-  function readSharesConfig(ctx){ const f=ensureSharesFile(ctx); try{ const d=JSON.parse(fs.readFileSync(f,'utf8')); return (d&&Array.isArray(d.shares))?d:{shares:[]}; }catch(e){ return {shares:[]}; } }
+  function loadSharesStore(){
+    const f=ensureSharesFile();
+    try{
+      const d=JSON.parse(fs.readFileSync(f,'utf8'));
+      if(d && Array.isArray(d.shares)) return { domains:{ domain:{ shares:d.shares } } };
+      if(d && d.domains && typeof d.domains==='object') return d;
+    }catch(e){}
+    return defaultShares();
+  }
+  function saveSharesStore(store){ fs.writeFileSync(sharesFileForContext(),JSON.stringify(store,null,2)); }
+  function readSharesConfig(ctx){
+    const store=loadSharesStore();
+    const key=tenantKey(ctx);
+    if(!store.domains) store.domains={};
+    if(!store.domains[key]){ store.domains[key]={ shares: defaultShareList() }; saveSharesStore(store); }
+    return store.domains[key];
+  }
   function listField(v){ return Array.isArray(v)?v.map(String).map(x=>x.trim()).filter(Boolean):[]; }
   function anonMode(v){ v=String(v||'none').toLowerCase(); return (v==='read'||v==='write')?v:'none'; }
   function normalizeShare(s){
@@ -58,7 +79,7 @@ module.exports.meshdrive = function (parent) {
     if(!data||!Array.isArray(data.shares)) throw new Error('shares must be an array');
     const names={};
     const clean={shares:data.shares.map(normalizeShare).filter(s=>s.name&&s.path).map(s=>{ const k=s.name.toLowerCase(); if(names[k]) throw new Error('Nome duplicado: '+s.name); names[k]=true; return s; })};
-    fs.writeFileSync(sharesFileForContext(ctx),JSON.stringify(clean,null,2)); return clean;
+    const store=loadSharesStore(); if(!store.domains) store.domains={}; store.domains[tenantKey(ctx)]=clean; saveSharesStore(store); return clean;
   }
 
   function findDomainIdByHost(host){ host=normalizeHost(host); const domains=serverConfig.domains||{}; for(const key in domains){ const d=domains[key]||{}; if(normalizeHost(d.dns)===host || normalizeHost(d.certUrl)===host){ const k=String(key||'').trim(); return (!k||k==='_')?'':k.toLowerCase(); } } return null; }
