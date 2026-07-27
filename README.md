@@ -1,6 +1,6 @@
 # Mesh Drive
 
-Versão `2.4.3-test`.
+Versão `2.4.4-test`.
 
 ## Rotas
 
@@ -10,25 +10,17 @@ https://<HOSTNAME>/carddav
 https://<HOSTNAME>/meshdrive
 ```
 
-## Mudança principal
+## Comportamento do `/drive`
 
-A rota `/drive` agora mostra os arquivos pessoais diretamente na raiz e adiciona os compartilhamentos como pastas virtuais.
+A rota `/drive` mostra os arquivos pessoais diretamente na raiz e adiciona os compartilhamentos permitidos como pastas virtuais.
 
 Exemplo:
 
 ```text
 /drive
-├── Documento pessoal.docx
-├── Projetos pessoais
+├── Arquivo pessoal.pdf
+├── Pasta pessoal
 └── Contatos
-```
-
-## CardDAV
-
-CardDAV continua separado em:
-
-```text
-https://<HOSTNAME>/carddav
 ```
 
 ## Configuração padrão
@@ -48,6 +40,10 @@ https://<HOSTNAME>/carddav
   ]
 }
 ```
+
+## Observação
+
+Se existir um arquivo `shares-<tenant>.json` no servidor, ele não será sobrescrito automaticamente pelo arquivo padrão do pacote.
 
 ## Debug
 

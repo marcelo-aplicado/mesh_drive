@@ -110,7 +110,22 @@ module.exports.meshdrive = function (parent) {
   function sendOptions(res,card){ res.writeHead(200, card?{'DAV':'1, 2, 3, addressbook','Allow':'OPTIONS, PROPFIND, REPORT, GET, PUT, DELETE'}:{'DAV':'1, 2','Allow':'OPTIONS, PROPFIND, GET, HEAD, PUT, DELETE, MKCOL, MOVE, COPY, LOCK, UNLOCK, PROPPATCH','MS-Author-Via':'DAV'}); res.end(); }
   function copyRec(s,d){ const st=fs.statSync(s); if(st.isDirectory()){ mkdir(d); fs.readdirSync(s).forEach(f=>copyRec(path.join(s,f),path.join(d,f))); } else fs.copyFileSync(s,d); }
 
-  function rootPropfind(res,u){ let out=propVirtual('drive','/'); const root = u.anonymous ? null : userRoot(u); if(root && fs.existsSync(root)){ fs.readdirSync(root).forEach(n=>{ out += propReal(path.join(root,n),'/'+n); }); } allowedShares(u).forEach(s=>{ out += propVirtual(s.name,'/'+s.name); }); return xml(res,207,'<?xml version="1.0" encoding="utf-8"?><D:multistatus xmlns:D="DAV:">'+out+'</D:multistatus>'); }
+  function rootPropfind(req,res,u){
+    const depth=req.headers.depth||'1';
+    let out='';
+    const root = u.anonymous ? null : userRoot(u);
+    if(root && fs.existsSync(root)){
+      out += propReal(root,'/');
+      if(depth !== '0'){
+        fs.readdirSync(root).forEach(n=>{ out += propReal(path.join(root,n),'/'+n); });
+        allowedShares(u).forEach(s=>{ out += propVirtual(s.name,'/'+s.name); });
+      }
+    } else {
+      out += propVirtual('drive','/');
+      if(depth !== '0') allowedShares(u).forEach(s=>{ out += propVirtual(s.name,'/'+s.name); });
+    }
+    return xml(res,207,'<?xml version="1.0" encoding="utf-8"?><D:multistatus xmlns:D="DAV:">'+out+'</D:multistatus>');
+  }
   function handleRealDav(req,res,target,u){ switch((req.method||'GET').toUpperCase()){
     case 'PROPFIND': { if(!fs.existsSync(target.path)){res.writeHead(404);return res.end();} let out=propReal(target.path,target.rel); const depth=req.headers.depth||'1',st=fs.statSync(target.path); if(depth!=='0'&&st.isDirectory())fs.readdirSync(target.path).forEach(n=>{out+=propReal(path.join(target.path,n),path.posix.join(target.rel,n));}); return xml(res,207,'<?xml version="1.0" encoding="utf-8"?><D:multistatus xmlns:D="DAV:">'+out+'</D:multistatus>'); }
     case 'GET': case 'HEAD': { if(!fs.existsSync(target.path)){res.writeHead(404);return res.end();} const st=fs.statSync(target.path); if(st.isDirectory()){res.writeHead(403);return res.end();} res.writeHead(200,{'Content-Length':st.size}); if(req.method.toUpperCase()==='HEAD')res.end(); else fs.createReadStream(target.path).pipe(res); break; }
@@ -122,10 +137,10 @@ module.exports.meshdrive = function (parent) {
     case 'UNLOCK': res.writeHead(204); res.end(); break;
     default: res.writeHead(405); res.end(); }
   }
-  async function driveDav(req,res){ const u=await auth(req,res,false,true); if(!u)return; const method=(req.method||'GET').toUpperCase(); if(method==='OPTIONS')return sendOptions(res,false); const rel=routePath(req,cfg.route),target=driveTarget(u,rel); if(!target){res.writeHead(404);return res.end();} try{ if(target.kind==='root'){ if(method==='PROPFIND')return rootPropfind(res,u); if(method==='PUT'||method==='MKCOL'){ // create in personal root for authenticated users
-        if(u.anonymous){res.writeHead(405);return res.end();}
-      }
-      res.writeHead(403); return res.end(); }
+  async function driveDav(req,res){ const u=await auth(req,res,false,true); if(!u)return; const method=(req.method||'GET').toUpperCase(); if(method==='OPTIONS')return sendOptions(res,false); const rel=routePath(req,cfg.route),target=driveTarget(u,rel); if(!target){res.writeHead(404);return res.end();} try{ if(target.kind==='root'){
+      if(method==='PROPFIND')return rootPropfind(req,res,u);
+      res.writeHead(403); return res.end();
+    }
     return handleRealDav(req,res,target,u); }catch(e){ if(cfg.debug)console.error(e); try{res.writeHead(500);res.end();}catch(ex){} } }
 
   function cardHref(rel){ let r=rel||'/'; if(r.indexOf('/')!==0)r='/'+r; return cfg.carddavRoute.replace(/\/$/,'')+encodeURI(r).replace(/#/g,'%23'); }
