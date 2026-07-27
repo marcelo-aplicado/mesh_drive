@@ -7,7 +7,8 @@
       "writeUsers": ["marcelo"],
       "readGroups": [],
       "writeGroups": ["TI"],
-      "anonymousAccess": "read"
+      "anonymousAccess": "read",
+      "icon": "contact"
     }
   ]
 }
