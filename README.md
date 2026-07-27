@@ -1,6 +1,6 @@
 # Mesh Drive
 
-Versão `2.4.2-test` focada em estabilização.
+Versão `2.4.3-test`.
 
 ## Rotas
 
@@ -10,18 +10,48 @@ https://<HOSTNAME>/carddav
 https://<HOSTNAME>/meshdrive
 ```
 
-## Estabilização
+## Mudança principal
 
-Esta versão adiciona:
+A rota `/drive` agora mostra os arquivos pessoais diretamente na raiz e adiciona os compartilhamentos como pastas virtuais.
 
-- logs desativados por padrão;
-- trava global para evitar registro duplicado de handlers;
-- limite de itens em respostas CardDAV REPORT;
-- manutenção do modelo `anonymousAccess`.
+Exemplo:
 
-## Configuração de debug
+```text
+/drive
+├── Documento pessoal.docx
+├── Projetos pessoais
+└── Contatos
+```
 
-Por padrão, o plugin não grava logs contínuos. Para ativar logs pontuais, use no `config.json` do MeshCentral:
+## CardDAV
+
+CardDAV continua separado em:
+
+```text
+https://<HOSTNAME>/carddav
+```
+
+## Configuração padrão
+
+```json
+{
+  "shares": [
+    {
+      "name": "Contatos",
+      "path": "contatos",
+      "readUsers": ["*"],
+      "writeUsers": ["marcelo"],
+      "readGroups": [],
+      "writeGroups": ["TI"],
+      "anonymousAccess": "read"
+    }
+  ]
+}
+```
+
+## Debug
+
+Logs ficam desativados por padrão. Para ativar:
 
 ```json
 {
@@ -32,15 +62,3 @@ Por padrão, o plugin não grava logs contínuos. Para ativar logs pontuais, use
   }
 }
 ```
-
-## Acesso anônimo
-
-```json
-"anonymousAccess": "none"
-```
-
-Valores:
-
-- `none`: exige usuário MeshCentral.
-- `read`: acesso anônimo somente leitura.
-- `write`: acesso anônimo com gravação.

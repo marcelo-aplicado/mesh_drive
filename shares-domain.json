@@ -1,21 +1,12 @@
 {
   "shares": [
     {
-      "name": "Public",
-      "path": "public",
-      "readUsers": ["*"],
-      "writeUsers": [],
-      "readGroups": [],
-      "writeGroups": [],
-      "anonymousAccess": "read"
-    },
-    {
       "name": "Contatos",
-      "path": "contacts",
+      "path": "contatos",
       "readUsers": ["*"],
-      "writeUsers": [],
+      "writeUsers": ["marcelo"],
       "readGroups": [],
-      "writeGroups": [],
+      "writeGroups": ["TI"],
       "anonymousAccess": "read"
     }
   ]
