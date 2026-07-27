@@ -27,28 +27,31 @@ Mesh Drive é um plugin para o MeshCentral que adiciona acesso WebDAV e CardDAV 
 Exemplos de uso:
 
 ```text
-\\mesh.exemplo.com.br@SSL\drive
+\\SEU_HOST@SSL\drive
 ```
 
 ```text
-https://mesh.exemplo.com.br/carddav
+https://SEU_HOST/carddav
 ```
 
 ```text
-https://mesh.exemplo.com.br/meshdrive
+https://SEU_HOST/meshdrive
 ```
 
 ## Requisitos
 
 - MeshCentral com suporte a plugins habilitado.
-- Node.js/MeshCentral rodando com acesso de leitura e gravação ao diretório `meshcentral-data/plugins`.
-- Diretório de arquivos do MeshCentral acessível pelo container/serviço, normalmente `meshcentral-files`.
+- Acesso administrativo ao MeshCentral.
+- Diretório de dados do MeshCentral com permissão de leitura e gravação para o serviço/container.
+- Diretório de arquivos do MeshCentral acessível pelo serviço/container, normalmente `meshcentral-files`.
 - Para WebDAV no Windows, o serviço **WebClient** do Windows deve estar ativo.
 - Para CardDAV no Android, use um cliente compatível, como DAVx5.
 
 ## Ativar plugins no MeshCentral
 
-No `config.json` do MeshCentral, confirme que plugins estão habilitados. Exemplo:
+No `config.json` do MeshCentral, confirme que plugins estão habilitados.
+
+Exemplo:
 
 ```json
 {
@@ -58,23 +61,33 @@ No `config.json` do MeshCentral, confirme que plugins estão habilitados. Exempl
 }
 ```
 
-Se o seu ambiente usa uma estrutura diferente de configuração, mantenha o padrão já utilizado na sua instalação para habilitar plugins.
+Depois de alterar o `config.json`, reinicie o MeshCentral.
 
-## Instalação
+## Instalação pela interface do MeshCentral
 
-1. Pare o MeshCentral.
+1. Acesse o MeshCentral com um usuário administrador.
 
-```bash
-docker compose down
-```
+2. Abra a área de plugins do MeshCentral.
 
-2. Copie a pasta do plugin para:
+3. Use a opção de instalação/importação de plugin pela interface.
+
+4. Envie o pacote `.zip` do Mesh Drive.
+
+5. Aguarde o MeshCentral instalar o plugin na pasta de plugins.
+
+6. Reinicie o MeshCentral para garantir que as rotas do plugin sejam carregadas.
+
+7. Após reiniciar, acesse:
 
 ```text
-meshcentral-data/plugins/meshdrive
+https://SEU_HOST/meshdrive
 ```
 
-A pasta deve conter, no mínimo:
+8. Confirme se o arquivo `shares.json` foi carregado e ajuste os compartilhamentos conforme necessário.
+
+## Estrutura esperada do plugin
+
+Após a instalação, a pasta do plugin deve conter pelo menos:
 
 ```text
 config.json
@@ -84,27 +97,9 @@ README.md
 LICENSE
 ```
 
-3. Ajuste permissões se necessário.
-
-```bash
-sudo chown -R ubuntu:ubuntu meshcentral-data/plugins/meshdrive
-```
-
-4. Suba o MeshCentral novamente.
-
-```bash
-docker compose up -d
-```
-
-5. Acesse a interface administrativa do plugin.
-
-```text
-https://SEU_HOST/meshdrive
-```
-
 ## Configuração principal: `shares.json`
 
-A versão 1.2.4 usa apenas um arquivo de configuração para todos os domínios:
+A versão `1.2.4` usa apenas um arquivo de configuração para todos os domínios:
 
 ```text
 shares.json
@@ -142,6 +137,31 @@ Exemplo:
       ]
     }
   }
+}
+```
+
+## Domínios padrão incluídos
+
+O pacote já vem com configuração inicial para:
+
+```text
+domain
+crsbrands
+mhs
+fastcopy
+```
+
+Todos usam o compartilhamento padrão:
+
+```json
+{
+  "name": "Contatos",
+  "path": "contatos",
+  "readUsers": ["*"],
+  "writeUsers": ["marcelo"],
+  "readGroups": [],
+  "writeGroups": ["TI"],
+  "anonymousAccess": "read"
 }
 ```
 
@@ -203,38 +223,13 @@ Controla acesso sem usuário MeshCentral.
 "anonymousAccess": "read"
 ```
 
-Valores:
+Valores disponíveis:
 
 - `none`: não permite acesso anônimo.
 - `read`: permite acesso anônimo somente leitura.
 - `write`: permite acesso anônimo com leitura e gravação.
 
-## Exemplo padrão incluído
-
-O pacote já vem com `shares.json` configurado com `Contatos` nos tenants:
-
-```text
-domain
-crsbrands
-mhs
-fastcopy
-```
-
-Todos usam:
-
-```json
-{
-  "name": "Contatos",
-  "path": "contatos",
-  "readUsers": ["*"],
-  "writeUsers": ["marcelo"],
-  "readGroups": [],
-  "writeGroups": ["TI"],
-  "anonymousAccess": "read"
-}
-```
-
-## WebDAV no Windows
+## Uso no Windows via WebDAV
 
 Use:
 
@@ -244,7 +239,7 @@ Use:
 
 Se o Windows não conectar, verifique se o serviço **WebClient** está iniciado.
 
-## CardDAV no DAVx5
+## Uso no DAVx5 via CardDAV
 
 Use a URL base:
 
@@ -253,6 +248,24 @@ https://SEU_HOST/carddav
 ```
 
 Para acesso anônimo, deixe usuário e senha em branco no DAVx5. O plugin usará o usuário interno `anonymous`.
+
+## Administração dos compartilhamentos
+
+Acesse:
+
+```text
+https://SEU_HOST/meshdrive
+```
+
+Na interface administrativa é possível editar:
+
+- nome do compartilhamento;
+- diretório;
+- acesso anônimo;
+- usuários com leitura;
+- usuários com gravação;
+- grupos com leitura;
+- grupos com gravação.
 
 ## Debug
 
