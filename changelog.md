@@ -1,12 +1,13 @@
 # Changelog
 
-## 2.2.2-test
-- Alterado modelo de permissões: removido `access` como configuração principal.
-- Adicionados campos `readUsers`, `writeUsers`, `readGroups` e `writeGroups`.
-- A interface `/meshdrive` agora possui campos separados para usuários/grupos com leitura e usuários/grupos com gravação.
-- Regra aplicada: usuários/grupos em gravação também recebem leitura; usuários/grupos em leitura ficam somente leitura.
-- Mantida compatibilidade parcial com shares antigos que usam `access`, `users` e `groups`.
-- Mantidas rotas `/drive`, `/shared` e `/meshdrive`.
+## 2.2.3-test
+- Corrigido isolamento Multi-Tenancy da configuração de compartilhamentos.
+- O plugin deixa de usar um `shares.json` global e passa a usar arquivos por tenant.
+- Tenant padrão usa `shares-domain.json`.
+- Tenant CRS Brands usa `shares-crsbrands.json`.
+- A interface `/meshdrive` lê e salva o arquivo do tenant acessado pelo hostname.
+- A rota `/shared` também usa o arquivo do tenant da requisição.
+- Mantido modelo ACL com `readUsers`, `writeUsers`, `readGroups` e `writeGroups`.
 
-## 2.2.1-test
-- Corrigido salvamento de usuários na interface.
+## 2.2.2-test
+- Modelo ACL com usuários/grupos separados para leitura e gravação.
