@@ -1,30 +1,28 @@
 # Mesh Drive
 
-Mesh Drive expõe arquivos pessoais e compartilhamentos em `/drive` e adiciona suporte experimental CardDAV em `/carddav`.
+Mesh Drive expõe arquivos em `/drive` e contatos CardDAV em `/carddav`.
 
-## Rotas principais
-
-WebDAV unificado:
+## Rotas
 
 ```text
 \\<HOSTNAME>@SSL\drive
-```
-
-CardDAV experimental:
-
-```text
 https://<HOSTNAME>/carddav
-```
-
-Interface administrativa:
-
-```text
 https://<HOSTNAME>/meshdrive
 ```
 
-## CardDAV experimental
+## Acesso anônimo
 
-Cada compartilhamento permitido no `shares-<tenant>.json` aparece como um address book CardDAV.
+A versão `2.4.1-test` adiciona o campo:
+
+```json
+"anonymousAccess": "none"
+```
+
+Valores:
+
+- `none`: exige usuário MeshCentral.
+- `read`: permite acesso anônimo somente leitura.
+- `write`: permite acesso anônimo com gravação.
 
 Exemplo:
 
@@ -35,22 +33,15 @@ Exemplo:
   "readUsers": ["*"],
   "writeUsers": ["marcelo"],
   "readGroups": [],
-  "writeGroups": []
+  "writeGroups": [],
+  "anonymousAccess": "read"
 }
 ```
 
-Arquivos físicos:
-
-```text
-meshcentral-files/domain/contacts/*.vcf
-```
-
-No DAVx5, teste a URL base:
+No DAVx5, para teste sem usuário MeshCentral, use:
 
 ```text
 https://<HOSTNAME>/carddav
 ```
 
-## Observação
-
-Esta é uma implementação de teste para validar descoberta, leitura e gravação básica de `.vcf`. Recursos avançados de CardDAV podem exigir ajustes depois dos testes reais com DAVx5.
+> Atenção: `anonymousAccess: "write"` permite gravação sem autenticação. Use apenas em ambientes controlados.

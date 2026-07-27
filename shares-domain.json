@@ -6,7 +6,8 @@
       "readUsers": ["*"],
       "writeUsers": [],
       "readGroups": [],
-      "writeGroups": []
+      "writeGroups": [],
+      "anonymousAccess": "read"
     },
     {
       "name": "Contatos",
@@ -14,7 +15,8 @@
       "readUsers": ["*"],
       "writeUsers": [],
       "readGroups": [],
-      "writeGroups": []
+      "writeGroups": [],
+      "anonymousAccess": "read"
     }
   ]
 }
