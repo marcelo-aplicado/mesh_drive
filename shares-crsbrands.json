@@ -1,0 +1,13 @@
+{
+  "shares": [
+    {
+      "name": "Contatos",
+      "path": "contatos",
+      "readUsers": ["*"],
+      "writeUsers": ["marcelo"],
+      "readGroups": [],
+      "writeGroups": ["TI"],
+      "anonymousAccess": "read"
+    }
+  ]
+}
