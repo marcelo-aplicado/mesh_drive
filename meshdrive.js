@@ -159,7 +159,7 @@ module.exports.meshdrive = function (parent) {
     case 'UNLOCK': res.writeHead(204); res.end(); break;
     default: res.writeHead(405); res.end(); }
   }
-  async function driveDav(req,res){ const u=await auth(req,res,false,true); if(!u)return; const method=(req.method||'GET').toUpperCase(); if(method==='OPTIONS')return sendOptions(res,false); const rel=routePath(req,cfg.route),target=driveTarget(u,rel); if(!target){res.writeHead(404);return res.end();} try{ if(target.kind==='root'){
+  async function driveDav(req,res){ const preliminaryRel=routePath(req,cfg.route); const rootRequest=(preliminaryRel==='/'||preliminaryRel===''); const u=await auth(req,res,false,!rootRequest); if(!u)return; const method=(req.method||'GET').toUpperCase(); if(method==='OPTIONS')return sendOptions(res,false); const rel=preliminaryRel,target=driveTarget(u,rel); if(!target){res.writeHead(404);return res.end();} try{ if(target.kind==='root'){
       if(method==='PROPFIND')return rootPropfind(req,res,u);
       res.writeHead(403); return res.end();
     }
@@ -200,20 +200,20 @@ module.exports.meshdrive = function (parent) {
     for(const l of lines){ if((l[0]===' '||l[0]==='\t')&&unfolded.length) unfolded[unfolded.length-1]+=l.slice(1); else unfolded.push(l); }
     const c={file:file||'',uid:'',fn:'',firstName:'',lastName:'',email:'',phone:'',mobile:'',org:'',title:'',note:''};
     for(const line of unfolded){
-      const i=line.indexOf(':'); if(i<0)continue;
+      const i=line.indexOf(':'); if(i<0) continue;
       const key=line.slice(0,i).split(';')[0].toUpperCase();
       const val=line.slice(i+1).replace(/\\n/g,'\n').replace(/\\,/g,',').replace(/\\;/g,';');
-      if(key==='UID')c.uid=val;
-      else if(key==='FN')c.fn=val;
+      if(key==='UID') c.uid=val;
+      else if(key==='FN') c.fn=val;
       else if(key==='N'){ const n=val.split(';'); c.lastName=n[0]||''; c.firstName=n[1]||''; }
-      else if(key==='EMAIL'&&!c.email)c.email=val;
-      else if(key==='TEL'&&/CELL|MOBILE/i.test(line)&&!c.mobile)c.mobile=val;
-      else if(key==='TEL'&&!c.phone)c.phone=val;
-      else if(key==='ORG')c.org=val;
-      else if(key==='TITLE')c.title=val;
-      else if(key==='NOTE')c.note=val;
+      else if(key==='EMAIL'&&!c.email) c.email=val;
+      else if(key==='TEL'&&/CELL|MOBILE/i.test(line)&&!c.mobile) c.mobile=val;
+      else if(key==='TEL'&&!c.phone) c.phone=val;
+      else if(key==='ORG') c.org=val;
+      else if(key==='TITLE') c.title=val;
+      else if(key==='NOTE') c.note=val;
     }
-    if(!c.fn)c.fn=((c.firstName+' '+c.lastName).trim()||c.email||c.phone||file||'Contato');
+    if(!c.fn) c.fn=((c.firstName+' '+c.lastName).trim()||c.email||c.phone||file||'Contato');
     return c;
   }
   function escV(v){ return String(v||'').replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;'); }
@@ -222,12 +222,12 @@ module.exports.meshdrive = function (parent) {
     const uid=c.uid||crypto.randomUUID();
     const fn=(c.fn||((c.firstName||'')+' '+(c.lastName||'')).trim()||c.email||c.phone||'Contato').trim();
     const out=['BEGIN:VCARD','VERSION:3.0','UID:'+escV(uid),'FN:'+escV(fn),'N:'+escV(c.lastName||'')+';'+escV(c.firstName||'')+';;;'];
-    if(c.email)out.push('EMAIL;TYPE=INTERNET:'+escV(c.email));
-    if(c.phone)out.push('TEL;TYPE=WORK,VOICE:'+escV(c.phone));
-    if(c.mobile)out.push('TEL;TYPE=CELL:'+escV(c.mobile));
-    if(c.org)out.push('ORG:'+escV(c.org));
-    if(c.title)out.push('TITLE:'+escV(c.title));
-    if(c.note)out.push('NOTE:'+escV(c.note));
+    if(c.email) out.push('EMAIL;TYPE=INTERNET:'+escV(c.email));
+    if(c.phone) out.push('TEL;TYPE=WORK,VOICE:'+escV(c.phone));
+    if(c.mobile) out.push('TEL;TYPE=CELL:'+escV(c.mobile));
+    if(c.org) out.push('ORG:'+escV(c.org));
+    if(c.title) out.push('TITLE:'+escV(c.title));
+    if(c.note) out.push('NOTE:'+escV(c.note));
     out.push('REV:'+new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z'));
     out.push('END:VCARD');
     return out.join('\r\n')+'\r\n';
@@ -235,10 +235,7 @@ module.exports.meshdrive = function (parent) {
   function jsonRes(res,obj,code){ res.writeHead(code||200,{'Content-Type':'application/json; charset=utf-8'}); res.end(JSON.stringify(obj,null,2)); }
   function booksForAdmin(ctx){
     const u={id:'admin',username:'admin',anonymous:false,doc:{siteadmin:1},domainContext:ctx};
-    return readSharesConfig(ctx).shares.map(normalizeShare).map(s=>{
-      const root=shareRoot(u,s);
-      return {name:s.name,path:s.path,root,count:vcfFiles(root).length};
-    });
+    return readSharesConfig(ctx).shares.map(normalizeShare).map(s=>{ const root=shareRoot(u,s); return {name:s.name,path:s.path,root,count:vcfFiles(root).length}; });
   }
   function findBook(ctx,name){ name=safe(name||''); return booksForAdmin(ctx).find(b=>safe(b.name).toLowerCase()===name.toLowerCase()); }
   async function contactsApi(req,res,u,apiPath){
@@ -281,7 +278,7 @@ module.exports.meshdrive = function (parent) {
         if(!book||!file){res.writeHead(404);return res.end('not found');}
         const full=path.resolve(path.join(book.root,file));
         if(full.indexOf(book.root+path.sep)!==0){res.writeHead(403);return res.end('invalid path');}
-        if(fs.existsSync(full))fs.rmSync(full,{force:true});
+        if(fs.existsSync(full)) fs.rmSync(full,{force:true});
         return jsonRes(res,{ok:true});
       }
       res.writeHead(404); res.end('not found');
@@ -292,13 +289,13 @@ module.exports.meshdrive = function (parent) {
     const u=await auth(req,res,true,false); if(!u)return;
     const p=(req.url||'').split('?')[0];
     const apiPath=(p.indexOf('/api/')===0)?p:(p.indexOf(cfg.contactsRoute+'/api/')===0?p.substring(cfg.contactsRoute.length):'');
-    if(apiPath)return contactsApi(req,res,u,apiPath);
+    if(apiPath) return contactsApi(req,res,u,apiPath);
     res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'}); res.end(contactsPage(u.domainContext));
   }
 
   function app(){ const c=[obj.meshServer&&obj.meshServer.webserver&&obj.meshServer.webserver.app,obj.meshServer&&obj.meshServer.app,parent&&parent.app,parent&&parent.webserver&&parent.webserver.app]; for(const a of c)if(a&&typeof a.use==='function')return a; return null; }
   obj.hook_setupHttpHandlers=function(){ if(cfg.enabled===false)return; const key='__meshdrive_handlers_registered__'; if(global[key]){log('handlers already registered');return;} const a=app(); if(!a)return; global[key]=true; mkdir(pluginDir); mkdir(rootDomainForFolder(cfg.meshDomainFolder||'domain')); a.use(cfg.route,(req,res)=>driveDav(req,res)); a.use(cfg.carddavRoute,(req,res)=>carddav(req,res)); a.use(cfg.adminRoute,(req,res)=>adminHandler(req,res)); a.use(cfg.contactsRoute,(req,res)=>contactsHandler(req,res)); log('handlers registered once'); };
-  obj.server_startup=function(){ log('loaded 1.2.7'); };
+  obj.server_startup=function(){ log('loaded 1.2.8'); };
   obj.copyDetectedAddress=function(){ const host=window.location.hostname||window.location.host||'localhost'; const address='\\\\'+host+'@SSL\\drive'; if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(address).then(()=>alert('Endereço copiado:\n\n'+address),()=>prompt('Copie o endereço:',address)); else prompt('Copie o endereço:',address); };
   obj.copyMapCommand=function(){ const host=window.location.hostname||window.location.host||'localhost'; const command=['$meshHost="'+host.replace(/"/g,'')+'";','$path="\\\\$($meshHost)@SSL\\drive";','foreach($l in "M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"){','if(-not (Get-PSDrive -Name $l -ErrorAction SilentlyContinue)){','net use "$($l):" $path;','if($LASTEXITCODE -eq 0){explorer "$($l):\\"};','break','}','}'].join(''); if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(command).then(()=>alert('Comando copiado:\n\n'+command),()=>prompt('Copie o comando:',command)); else prompt('Copie o comando:',command); };
   obj.openMeshDriveAdmin=function(){ try{window.open('/meshdrive','_blank','noopener');}catch(e){window.location.href='/meshdrive';} };

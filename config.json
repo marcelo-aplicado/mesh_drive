@@ -1,9 +1,9 @@
 {
   "name": "Mesh Drive",
   "shortName": "meshdrive",
-  "version": "1.2.7",
+  "version": "1.2.8",
   "author": "Marcelo Henrique da Silva / CRS Brands",
-  "description": "Mesh Drive para MeshCentral com WebDAV, CardDAV, shares.json único e editor VCF em /meshcontacts.",
+  "description": "Mesh Drive para MeshCentral com WebDAV, CardDAV, shares.json único, editor VCF e arquivos pessoais na raiz do /drive.",
   "hasAdminPanel": false,
   "homepage": "https://github.com/marcelo-aplicado/mesh_drive",
   "changelogUrl": "https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/changelog.md",

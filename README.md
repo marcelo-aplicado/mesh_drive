@@ -9,9 +9,13 @@ Mesh Drive é um plugin para MeshCentral com WebDAV, CardDAV, compartilhamentos 
 - `/meshdrive`: administração de compartilhamentos.
 - `/meshcontacts`: editor web de contatos `.vcf`.
 - Arquivos pessoais exibidos diretamente na raiz do `/drive`.
-- Compartilhamentos exibidos como pastas virtuais.
+- Compartilhamentos exibidos como pastas virtuais, como `Contatos`.
 - Configuração única em `shares.json`, com múltiplos domínios dentro do mesmo arquivo.
 - Botões no My Files: `Mesh Drive`, `Mapear`, `Compartilhamentos` e `Contatos`.
+
+## Ajuste importante da versão 1.2.8
+
+A raiz do `/drive` agora exige autenticação. Isso evita que o Windows WebDAV entre como anônimo e mostre apenas compartilhamentos públicos, como `Contatos`. Após autenticar, a raiz mostra os arquivos pessoais e adiciona os compartilhamentos como pastas virtuais.
 
 ## Instalação pela interface do MeshCentral
 
@@ -42,7 +46,13 @@ Após atualizar e reiniciar o MeshCentral, valide:
 https://SEU_HOST/meshcontacts/api/books
 ```
 
-O retorno esperado é JSON com o tenant atual e a lista de address books.
+E no Windows WebDAV:
+
+```text
+\\SEU_HOST@SSL\drive
+```
+
+O esperado é ver os arquivos pessoais na raiz e a pasta virtual `Contatos`.
 
 ## Configuração
 
