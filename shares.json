@@ -5,16 +5,10 @@
         {
           "name": "Contatos",
           "path": "contatos",
-          "readUsers": [
-            "*"
-          ],
-          "writeUsers": [
-            "marcelo"
-          ],
+          "readUsers": ["*"],
+          "writeUsers": ["marcelo"],
           "readGroups": [],
-          "writeGroups": [
-            "TI"
-          ],
+          "writeGroups": ["TI"],
           "anonymousAccess": "read"
         }
       ]
@@ -24,16 +18,10 @@
         {
           "name": "Contatos",
           "path": "contatos",
-          "readUsers": [
-            "*"
-          ],
-          "writeUsers": [
-            "marcelo"
-          ],
+          "readUsers": ["*"],
+          "writeUsers": ["marcelo"],
           "readGroups": [],
-          "writeGroups": [
-            "TI"
-          ],
+          "writeGroups": ["TI"],
           "anonymousAccess": "read"
         }
       ]
@@ -43,16 +31,10 @@
         {
           "name": "Contatos",
           "path": "contatos",
-          "readUsers": [
-            "*"
-          ],
-          "writeUsers": [
-            "marcelo"
-          ],
+          "readUsers": ["*"],
+          "writeUsers": ["marcelo"],
           "readGroups": [],
-          "writeGroups": [
-            "TI"
-          ],
+          "writeGroups": ["TI"],
           "anonymousAccess": "read"
         }
       ]
@@ -62,16 +44,10 @@
         {
           "name": "Contatos",
           "path": "contatos",
-          "readUsers": [
-            "*"
-          ],
-          "writeUsers": [
-            "marcelo"
-          ],
+          "readUsers": ["*"],
+          "writeUsers": ["marcelo"],
           "readGroups": [],
-          "writeGroups": [
-            "TI"
-          ],
+          "writeGroups": ["TI"],
           "anonymousAccess": "read"
         }
       ]
