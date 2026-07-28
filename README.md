@@ -28,15 +28,56 @@ https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/config.json
 
 O acesso WebDAV no Windows depende do serviço **Cliente Web (WebClient)**. Em muitas instalações, o serviço fica como **Manual** e pode estar parado.
 
+Verifique:
+
 ```cmd
 sc query WebClient
+```
+
+Inicie, se necessário:
+
+```cmd
 net start WebClient
+```
+
+Opcionalmente, configure como automático:
+
+```cmd
 sc config WebClient start= auto
 ```
 
+Sem esse serviço, o Windows pode apresentar erros como:
+
+```text
+Erro de sistema 67
+O nome da rede não foi encontrado
+```
+
+## Recursos
+
+- WebDAV: `https://<HOSTNAME>/drive/`
+- O hostname é detectado automaticamente a partir do servidor MeshCentral acessado no navegador.
+- Em **Meus Arquivos**, dois botões são exibidos:
+  - **Mesh Drive**: copia o endereço adequado ao sistema operacional.
+  - **Mapear**: copia um comando para abrir/mapear o Mesh Drive conforme o sistema operacional.
+
+## Comportamento por sistema operacional
+
+- **Windows**
+  - `Mesh Drive`: copia `\<HOSTNAME>@SSL\drive`.
+  - `Mapear`: copia um comando PowerShell que tenta mapear a primeira letra livre entre `M:` e `Z:` e nomear a unidade como **Mesh Drive**.
+
+- **Linux**
+  - `Mesh Drive`: copia `davs://<HOSTNAME>/drive/`.
+  - `Mapear`: copia um comando que tenta usar `gio mount` e `xdg-open` para montar/abrir o WebDAV no ambiente gráfico.
+
+- **macOS**
+  - `Mesh Drive`: copia `davs://<HOSTNAME>/drive/`.
+  - `Mapear`: copia o comando `open "davs://<HOSTNAME>/drive/"`.
+
 ## Multi-Tenancy
 
-O plugin resolve o tenant usando o hostname da requisição WebDAV e a configuração `domains` do MeshCentral.
+O Mesh Drive resolve o tenant usando o hostname da requisição WebDAV e a configuração `domains` do MeshCentral.
 
 Exemplo no `config.json` do MeshCentral:
 
@@ -47,7 +88,7 @@ Exemplo no `config.json` do MeshCentral:
 }
 ```
 
-Com esse exemplo, o acesso por `mesh.crsbrands.com.br` deve autenticar usuários como `user/crsbrands/<usuario>` e usar arquivos em `meshcentral-files/domain-crsbrands`.
+Com esse exemplo, o acesso por `mesh.crsbrands.com.br` autentica usuários como `user/crsbrands/<usuario>` e usa arquivos em `meshcentral-files/domain-crsbrands`.
 
 Também é possível forçar mapeamento manual:
 
@@ -64,37 +105,6 @@ Também é possível forçar mapeamento manual:
 }
 ```
 
-## Botões
-
-- **Mesh Drive**: copia o endereço adequado ao sistema operacional.
-- **Mapear**: copia um comando para abrir/mapear o Mesh Drive conforme o sistema operacional.
-
-
-
-## Diagnóstico de autenticação nativa
-
-A versão 1.2.5 tenta usar autenticação nativa do MeshCentral antes da validação PBKDF2 manual.
-
-Para acompanhar os logs:
-
-```bash
-journalctl -u meshcentral -f | grep -i "Mesh Drive"
-```
-
-Os logs indicam os métodos internos encontrados e se a autenticação nativa conseguiu validar o usuário. Senhas e hashes completos não são exibidos.
-
-## Diagnóstico de autenticação WebDAV
-
-A versão 1.2.4 inclui logs detalhados para diagnosticar autenticação Basic/WebDAV em ambientes Multi-Tenancy.
-
-Para acompanhar os logs:
-
-```bash
-journalctl -u meshcentral -f | grep -i "Mesh Drive"
-```
-
-Os logs não exibem a senha nem o hash completo do usuário.
-
 ## Teste WebDAV
 
 ```bash
@@ -106,3 +116,7 @@ Resposta esperada:
 ```text
 HTTP/1.1 207 Multi-Status
 ```
+
+## Licença
+
+MIT License
