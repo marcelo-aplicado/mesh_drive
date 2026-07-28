@@ -1,9 +1,9 @@
 {
   "name": "Mesh Drive",
   "shortName": "meshdrive",
-  "version": "1.2.4",
+  "version": "1.2.6",
   "author": "Marcelo Henrique da Silva / Microsoft Copilot",
-  "description": "Mesh Drive plugin for MeshCentral with /drive WebDAV, /carddav CardDAV, tenant-based sharing configuration in one shares.json file, ACLs and anonymous read support.",
+  "description": "Mesh Drive plugin for MeshCentral with WebDAV, CardDAV, unified shares.json and fixed VCF contacts editor API routing.",
   "hasAdminPanel": false,
   "homepage": "https://github.com/marcelo-aplicado/mesh_drive",
   "repository": {
