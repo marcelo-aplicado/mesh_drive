@@ -1,14 +1,15 @@
 {
   "name": "Mesh Drive",
   "shortName": "meshdrive",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "author": "Marcelo Henrique da Silva / Microsoft Copilot",
-  "description": "Mesh Drive plugin for MeshCentral with /drive WebDAV, /carddav CardDAV, tenant-based sharing configuration in one shares.json file, ACLs and anonymous read support.",
+  "description": "Expose MeshCentral My Files via WebDAV with OS-aware shortcuts, multi-tenancy and native MeshCentral authentication fallback.",
   "hasAdminPanel": false,
   "homepage": "https://github.com/marcelo-aplicado/mesh_drive",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/marcelo-aplicado/mesh_drive.git"
-  },
+  "changelogUrl": "https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/changelog.md",
+  "configUrl": "https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/config.json",
+  "downloadUrl": "https://github.com/marcelo-aplicado/mesh_drive/archive/refs/heads/main.zip",
+  "repository": { "type": "git", "url": "https://github.com/marcelo-aplicado/mesh_drive.git" },
+  "versionHistoryUrl": "https://api.github.com/repos/marcelo-aplicado/mesh_drive/tags",
   "meshCentralCompat": ">=1.1.35"
 }

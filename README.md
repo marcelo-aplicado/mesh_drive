@@ -1,302 +1,108 @@
 # Mesh Drive
 
-Mesh Drive é um plugin para o MeshCentral que adiciona acesso WebDAV e CardDAV usando os arquivos do próprio MeshCentral como backend.
+Mesh Drive expõe o **My Files** do MeshCentral via WebDAV em `/drive` e adiciona botões rápidos em **Meus Arquivos** para copiar o endereço WebDAV e copiar um comando de mapeamento conforme o sistema operacional.
 
-## Recursos
+## Pré-requisito: ativar plugins no MeshCentral
 
-- Rota `/drive` para acesso WebDAV a arquivos.
-- Rota `/carddav` para sincronização de contatos em clientes compatíveis com CardDAV, como DAVx5.
-- Rota administrativa `/meshdrive` para cadastrar e editar compartilhamentos.
-- Arquivos pessoais do usuário exibidos diretamente na raiz do `/drive`.
-- Compartilhamentos exibidos como pastas virtuais adicionais na raiz do `/drive`.
-- Configuração centralizada em um único arquivo `shares.json`.
-- Configuração separada por domínio/tenant dentro do mesmo `shares.json`.
-- Permissões por usuários e grupos de leitura/gravação.
-- Acesso anônimo opcional por compartilhamento: `none`, `read` ou `write`.
-- Logs desativados por padrão para reduzir risco de carga excessiva.
-- Proteção contra registro duplicado de rotas.
-
-## Rotas
-
-```text
-/drive
-/carddav
-/meshdrive
-```
-
-Exemplos de uso:
-
-```text
-\\SEU_HOST@SSL\drive
-```
-
-```text
-https://SEU_HOST/carddav
-```
-
-```text
-https://SEU_HOST/meshdrive
-```
-
-## Requisitos
-
-- MeshCentral com suporte a plugins habilitado.
-- Acesso administrativo ao MeshCentral.
-- Diretório de dados do MeshCentral com permissão de leitura e gravação para o serviço/container.
-- Diretório de arquivos do MeshCentral acessível pelo serviço/container, normalmente `meshcentral-files`.
-- Para WebDAV no Windows, o serviço **WebClient** do Windows deve estar ativo.
-- Para CardDAV no Android, use um cliente compatível, como DAVx5.
-
-## Ativar plugins no MeshCentral
-
-No `config.json` do MeshCentral, confirme que plugins estão habilitados.
-
-Exemplo:
+Antes de instalar o plugin, confirme que os plugins estão habilitados no `config.json` do MeshCentral:
 
 ```json
 {
-  "settings": {
-    "plugins": true
+  "plugins": {
+    "enabled": true
   }
 }
 ```
 
-Depois de alterar o `config.json`, reinicie o MeshCentral.
+Depois de alterar o `config.json`, reinicie o serviço do MeshCentral.
 
-## Instalação pela interface do MeshCentral
+## Instalação
 
-Use a URL do arquivo `config.json` do repositório do plugin:
+Na tela de plugins do MeshCentral, use exatamente este endereço para instalar o plugin:
 
 ```text
 https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/config.json
 ```
 
-Passos:
+## Requisito para Windows
 
-1. Acesse o MeshCentral com um usuário administrador.
+O acesso WebDAV no Windows depende do serviço **Cliente Web (WebClient)**. Em muitas instalações, o serviço fica como **Manual** e pode estar parado.
 
-2. Abra a área de plugins do MeshCentral.
-
-3. Use a opção de instalação de plugin por URL.
-
-4. Cole a URL do `config.json` do repositório:
-
-```text
-https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/config.json
+```cmd
+sc query WebClient
+net start WebClient
+sc config WebClient start= auto
 ```
 
-5. Confirme a instalação pela interface.
+## Multi-Tenancy
 
-6. Aguarde o MeshCentral baixar e instalar o plugin.
+O plugin resolve o tenant usando o hostname da requisição WebDAV e a configuração `domains` do MeshCentral.
 
-7. Reinicie o MeshCentral para garantir que as rotas do plugin sejam carregadas.
-
-8. Após reiniciar, acesse:
-
-```text
-https://SEU_HOST/meshdrive
-```
-
-9. Confirme se o arquivo `shares.json` foi carregado e ajuste os compartilhamentos conforme necessário.
-
-## Estrutura esperada do plugin
-
-Após a instalação, a pasta do plugin deve conter pelo menos:
-
-```text
-config.json
-meshdrive.js
-shares.json
-README.md
-LICENSE
-```
-
-## Configuração principal: `shares.json`
-
-A versão `1.2.4` usa apenas um arquivo de configuração para todos os domínios:
-
-```text
-shares.json
-```
-
-Exemplo:
+Exemplo no `config.json` do MeshCentral:
 
 ```json
-{
-  "domains": {
-    "domain": {
-      "shares": [
-        {
-          "name": "Contatos",
-          "path": "contatos",
-          "readUsers": ["*"],
-          "writeUsers": ["marcelo"],
-          "readGroups": [],
-          "writeGroups": ["TI"],
-          "anonymousAccess": "read"
-        }
-      ]
-    },
-    "crsbrands": {
-      "shares": [
-        {
-          "name": "Contatos",
-          "path": "contatos",
-          "readUsers": ["*"],
-          "writeUsers": ["marcelo"],
-          "readGroups": [],
-          "writeGroups": ["TI"],
-          "anonymousAccess": "read"
-        }
-      ]
-    }
-  }
+"CRSBrands": {
+  "dns": "mesh.crsbrands.com.br",
+  "certUrl": "https://mesh.crsbrands.com.br"
 }
 ```
 
-## Domínios padrão incluídos
+Com esse exemplo, o acesso por `mesh.crsbrands.com.br` deve autenticar usuários como `user/crsbrands/<usuario>` e usar arquivos em `meshcentral-files/domain-crsbrands`.
 
-O pacote já vem com configuração inicial para:
-
-```text
-domain
-crsbrands
-mhs
-fastcopy
-```
-
-Todos usam o compartilhamento padrão:
-
-```json
-{
-  "name": "Contatos",
-  "path": "contatos",
-  "readUsers": ["*"],
-  "writeUsers": ["marcelo"],
-  "readGroups": [],
-  "writeGroups": ["TI"],
-  "anonymousAccess": "read"
-}
-```
-
-## Campos do compartilhamento
-
-### `name`
-
-Nome exibido no `/drive` e também usado como address book no `/carddav`.
-
-```json
-"name": "Contatos"
-```
-
-### `path`
-
-Diretório físico relativo ao domínio/tenant do MeshCentral.
-
-```json
-"path": "contatos"
-```
-
-### `readUsers`
-
-Usuários com permissão de leitura. Use `*` para permitir leitura a todos os usuários autenticados.
-
-```json
-"readUsers": ["*"]
-```
-
-### `writeUsers`
-
-Usuários com permissão de gravação.
-
-```json
-"writeUsers": ["marcelo"]
-```
-
-### `readGroups`
-
-Grupos com permissão de leitura.
-
-```json
-"readGroups": []
-```
-
-### `writeGroups`
-
-Grupos com permissão de gravação.
-
-```json
-"writeGroups": ["TI"]
-```
-
-### `anonymousAccess`
-
-Controla acesso sem usuário MeshCentral.
-
-```json
-"anonymousAccess": "read"
-```
-
-Valores disponíveis:
-
-- `none`: não permite acesso anônimo.
-- `read`: permite acesso anônimo somente leitura.
-- `write`: permite acesso anônimo com leitura e gravação.
-
-## Uso no Windows via WebDAV
-
-Use:
-
-```text
-\\SEU_HOST@SSL\drive
-```
-
-Se o Windows não conectar, verifique se o serviço **WebClient** está iniciado.
-
-## Uso no DAVx5 via CardDAV
-
-Use a URL base:
-
-```text
-https://SEU_HOST/carddav
-```
-
-Para acesso anônimo, deixe usuário e senha em branco no DAVx5. O plugin usará o usuário interno `anonymous`.
-
-## Administração dos compartilhamentos
-
-Acesse:
-
-```text
-https://SEU_HOST/meshdrive
-```
-
-Na interface administrativa é possível editar:
-
-- nome do compartilhamento;
-- diretório;
-- acesso anônimo;
-- usuários com leitura;
-- usuários com gravação;
-- grupos com leitura;
-- grupos com gravação.
-
-## Debug
-
-Logs ficam desligados por padrão. Para ativar:
+Também é possível forçar mapeamento manual:
 
 ```json
 {
   "settings": {
     "meshDrive": {
-      "debug": true
+      "hostDomainMap": {
+        "mesh.crsbrands.com.br": "crsbrands",
+        "mesh.aplicado.com.br": "domain"
+      }
     }
   }
 }
 ```
 
-## Observações de segurança
+## Botões
 
-- Evite `anonymousAccess: "write"` em ambientes expostos à internet.
-- Use `anonymousAccess: "read"` apenas para dados que possam ser lidos por qualquer pessoa com acesso à URL.
-- Para ambientes corporativos, prefira gravação por usuário ou grupo.
+- **Mesh Drive**: copia o endereço adequado ao sistema operacional.
+- **Mapear**: copia um comando para abrir/mapear o Mesh Drive conforme o sistema operacional.
+
+
+
+## Diagnóstico de autenticação nativa
+
+A versão 1.2.5 tenta usar autenticação nativa do MeshCentral antes da validação PBKDF2 manual.
+
+Para acompanhar os logs:
+
+```bash
+journalctl -u meshcentral -f | grep -i "Mesh Drive"
+```
+
+Os logs indicam os métodos internos encontrados e se a autenticação nativa conseguiu validar o usuário. Senhas e hashes completos não são exibidos.
+
+## Diagnóstico de autenticação WebDAV
+
+A versão 1.2.4 inclui logs detalhados para diagnosticar autenticação Basic/WebDAV em ambientes Multi-Tenancy.
+
+Para acompanhar os logs:
+
+```bash
+journalctl -u meshcentral -f | grep -i "Mesh Drive"
+```
+
+Os logs não exibem a senha nem o hash completo do usuário.
+
+## Teste WebDAV
+
+```bash
+curl -k -i -u <usuario> -X PROPFIND -H "Depth: 1" https://<HOSTNAME>/drive/
+```
+
+Resposta esperada:
+
+```text
+HTTP/1.1 207 Multi-Status
+```
