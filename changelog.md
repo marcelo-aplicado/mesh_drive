@@ -1,4 +1,5 @@
 # Changelog
 
-## 1.2.4
-- Configuração centralizada em `shares.json` com todos os domínios no mesmo arquivo.
+## 1.2.5
+- Adicionada tela administrativa `/meshcontacts` para listar, criar, editar e excluir contatos `.vcf` sincronizados pelo CardDAV.
+- Mantida configuração centralizada em `shares.json`.
