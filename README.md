@@ -6,40 +6,16 @@ Mesh Drive é um plugin para o MeshCentral que adiciona acesso WebDAV, CardDAV e
 
 - `/drive` para acesso WebDAV aos arquivos.
 - `/carddav` para sincronização de contatos via CardDAV, compatível com DAVx5.
-- `/meshdrive` para visualizar/configurar compartilhamentos.
+- `/meshdrive` para administrar compartilhamentos.
 - `/meshcontacts` para listar, criar, editar e excluir contatos `.vcf` sincronizados pelo CardDAV.
+- Arquivos pessoais do usuário exibidos diretamente na raiz do `/drive`.
+- Compartilhamentos exibidos como pastas virtuais na raiz do `/drive`.
 - Configuração centralizada em um único arquivo `shares.json`.
 - Configuração por domínio/tenant dentro do mesmo `shares.json`.
-- Permissões por usuários e grupos.
-- Acesso anônimo por compartilhamento: `none`, `read` ou `write`.
-
-## Correção da versão 1.2.6
-
-A versão `1.2.6` corrige a rota da API do editor de contatos.
-
-Em alguns cenários, quando o Express monta a rota `/meshcontacts`, o `req.url` chega ao handler como:
-
-```text
-/api/books
-```
-
-em vez de:
-
-```text
-/meshcontacts/api/books
-```
-
-A versão `1.2.6` aceita os dois formatos, fazendo com que:
-
-```text
-/meshcontacts/api/books
-/meshcontacts/api/list
-/meshcontacts/api/get
-/meshcontacts/api/save
-/meshcontacts/api/delete
-```
-
-retornem JSON corretamente.
+- Permissões por usuários e grupos de leitura/gravação.
+- Acesso anônimo opcional por compartilhamento: `none`, `read` ou `write`.
+- Logs desativados por padrão.
+- Proteção contra registro duplicado de rotas.
 
 ## Rotas
 
@@ -49,6 +25,29 @@ retornem JSON corretamente.
 /meshdrive
 /meshcontacts
 ```
+
+## Requisitos
+
+- MeshCentral com suporte a plugins habilitado.
+- Acesso administrativo ao MeshCentral.
+- Diretório de dados do MeshCentral com permissão de leitura e gravação.
+- Diretório de arquivos do MeshCentral acessível pelo serviço/container, normalmente `meshcentral-files`.
+- Para WebDAV no Windows, o serviço **WebClient** do Windows deve estar ativo.
+- Para CardDAV no Android, use um cliente compatível, como DAVx5.
+
+## Ativar plugins no MeshCentral
+
+No `config.json` do MeshCentral, confirme que plugins estão habilitados.
+
+```json
+{
+  "settings": {
+    "plugins": true
+  }
+}
+```
+
+Depois de alterar o `config.json`, reinicie o MeshCentral.
 
 ## Instalação pela interface do MeshCentral
 
@@ -65,15 +64,48 @@ Passos:
 3. Use a opção de instalação de plugin por URL.
 4. Cole a URL do `config.json` do repositório.
 5. Confirme a instalação pela interface.
-6. Reinicie o MeshCentral.
-7. Acesse `/meshdrive` para validar a configuração.
-8. Acesse `/meshcontacts` para editar os contatos VCF.
+6. Aguarde o MeshCentral baixar e instalar o plugin.
+7. Reinicie o MeshCentral para garantir que as rotas sejam carregadas.
+8. Acesse `https://SEU_HOST/meshdrive` para configurar os compartilhamentos.
+9. Acesse `https://SEU_HOST/meshcontacts` para editar os contatos VCF.
+
+## Estrutura esperada do plugin
+
+```text
+config.json
+meshdrive.js
+shares.json
+README.md
+LICENSE
+changelog.md
+```
 
 ## Configuração principal: `shares.json`
+
+A versão `1.2.5` usa apenas um arquivo de configuração para todos os domínios:
+
+```text
+shares.json
+```
+
+Exemplo:
 
 ```json
 {
   "domains": {
+    "domain": {
+      "shares": [
+        {
+          "name": "Contatos",
+          "path": "contatos",
+          "readUsers": ["*"],
+          "writeUsers": ["marcelo"],
+          "readGroups": [],
+          "writeGroups": ["TI"],
+          "anonymousAccess": "read"
+        }
+      ]
+    },
     "crsbrands": {
       "shares": [
         {
@@ -93,9 +125,9 @@ Passos:
 
 ## Tela de contatos `/meshcontacts`
 
-A tela permite editar os arquivos `.vcf` gravados no diretório físico do compartilhamento configurado no `shares.json`.
+A tela `/meshcontacts` permite editar os arquivos `.vcf` que ficam dentro dos diretórios configurados como compartilhamentos.
 
-Campos disponíveis:
+Campos disponíveis na tela:
 
 - nome completo;
 - nome;
@@ -107,37 +139,116 @@ Campos disponíveis:
 - cargo;
 - observações.
 
-## Testes rápidos
+A tela grava os contatos novamente em formato vCard `.vcf`, mantendo compatibilidade com a sincronização CardDAV.
 
-Após instalar e reiniciar o MeshCentral, teste:
+## Campos do compartilhamento
 
-```text
-https://SEU_HOST/meshcontacts/api/books
+### `name`
+
+Nome exibido no `/drive` e usado como address book no `/carddav`.
+
+```json
+"name": "Contatos"
 ```
 
-O retorno esperado é JSON, por exemplo:
+### `path`
+
+Diretório físico relativo ao domínio/tenant do MeshCentral.
+
+```json
+"path": "contatos"
+```
+
+### `readUsers`
+
+Usuários com permissão de leitura. Use `*` para permitir leitura a todos os usuários autenticados.
+
+```json
+"readUsers": ["*"]
+```
+
+### `writeUsers`
+
+Usuários com permissão de gravação.
+
+```json
+"writeUsers": ["marcelo"]
+```
+
+### `readGroups`
+
+Grupos com permissão de leitura.
+
+```json
+"readGroups": []
+```
+
+### `writeGroups`
+
+Grupos com permissão de gravação.
+
+```json
+"writeGroups": ["TI"]
+```
+
+### `anonymousAccess`
+
+Controla acesso sem usuário MeshCentral.
+
+```json
+"anonymousAccess": "read"
+```
+
+Valores disponíveis:
+
+- `none`: não permite acesso anônimo.
+- `read`: permite acesso anônimo somente leitura.
+- `write`: permite acesso anônimo com leitura e gravação.
+
+## Uso no Windows via WebDAV
+
+```text
+\\SEU_HOST@SSL\drive
+```
+
+## Uso no DAVx5 via CardDAV
+
+```text
+https://SEU_HOST/carddav
+```
+
+Para acesso anônimo, deixe usuário e senha em branco no DAVx5.
+
+## Administração
+
+Compartilhamentos:
+
+```text
+https://SEU_HOST/meshdrive
+```
+
+Contatos VCF:
+
+```text
+https://SEU_HOST/meshcontacts
+```
+
+## Debug
+
+Logs ficam desligados por padrão. Para ativar:
 
 ```json
 {
-  "tenant": "crsbrands",
-  "books": [
-    {
-      "name": "Contatos",
-      "path": "contatos",
-      "count": 100
+  "settings": {
+    "meshDrive": {
+      "debug": true
     }
-  ]
+  }
 }
 ```
 
-Depois teste:
+## Observações de segurança
 
-```text
-https://SEU_HOST/meshcontacts/api/list?book=Contatos
-```
-
-## Segurança
-
-- `/meshcontacts` exige usuário administrador do MeshCentral.
 - Evite `anonymousAccess: "write"` em ambientes expostos à internet.
-- Use `anonymousAccess: "read"` somente para dados que possam ser lidos por qualquer pessoa com acesso à URL.
+- Use `anonymousAccess: "read"` apenas para dados que possam ser lidos por qualquer pessoa com acesso à URL.
+- A rota `/meshcontacts` exige usuário administrador do MeshCentral.
