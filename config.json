@@ -1,14 +1,18 @@
 {
   "name": "Mesh Drive",
   "shortName": "meshdrive",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "author": "Marcelo Henrique da Silva / Microsoft Copilot",
-  "description": "Mesh Drive plugin for MeshCentral with WebDAV, CardDAV, unified shares.json and web UI to edit synced VCF contacts.",
+  "description": "Mesh Drive plugin for MeshCentral with WebDAV, CardDAV, unified shares.json and VCF contacts editor.",
   "hasAdminPanel": false,
   "homepage": "https://github.com/marcelo-aplicado/mesh_drive",
+  "changelogUrl": "https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/changelog.md",
+  "configUrl": "https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/config.json",
+  "downloadUrl": "https://github.com/marcelo-aplicado/mesh_drive/archive/refs/heads/main.zip",
   "repository": {
     "type": "git",
     "url": "https://github.com/marcelo-aplicado/mesh_drive.git"
   },
+  "versionHistoryUrl": "https://api.github.com/repos/marcelo-aplicado/mesh_drive/tags",
   "meshCentralCompat": ">=1.1.35"
 }
