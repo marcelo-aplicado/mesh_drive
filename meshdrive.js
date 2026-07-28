@@ -7,7 +7,7 @@ module.exports.meshdrive = function (parent) {
 
   const obj = { parent, meshServer: parent.parent };
   obj.debug = obj.meshServer.debug;
-  obj.exports = ['onWebUIStartupEnd','goPageEnd','copyDetectedAddress','copyMapCommand','openMeshDriveAdmin','injectMeshDriveLauncher'];
+  obj.exports = ['onWebUIStartupEnd','goPageEnd','copyDetectedAddress','copyMapCommand','openMeshDriveAdmin','openMeshContactsAdmin','injectMeshDriveLauncher'];
 
   const serverConfig = (obj.meshServer || {}).config || {};
   const settings = serverConfig.settings || {};
@@ -18,6 +18,7 @@ module.exports.meshdrive = function (parent) {
     route: '/drive',
     carddavRoute: '/carddav',
     adminRoute: '/meshdrive',
+    contactsRoute: '/meshcontacts',
     meshFilesRoot: '/opt/meshcentral/meshcentral-files',
     meshDomainFolder: 'domain',
     userFolderPrefix: 'user-',
@@ -192,13 +193,117 @@ module.exports.meshdrive = function (parent) {
 
   function htmlPage(ctx){ const fileName=path.basename(sharesFileForContext(ctx)); return '<!doctype html><html><head><meta charset="utf-8"><title>Mesh Drive - Compartilhamentos</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:24px;background:#f6f8fa;color:#24292f}.card{background:white;border:1px solid #d0d7de;border-radius:10px;padding:18px;margin-bottom:14px}label{display:block;font-weight:600;margin:8px 0 4px}input,textarea,select{width:100%;box-sizing:border-box;padding:8px;border:1px solid #d0d7de;border-radius:6px}button{padding:8px 12px;border-radius:6px;border:1px solid #1f6feb;background:#1f6feb;color:white;cursor:pointer;margin-right:6px}.danger{background:#cf222e;border-color:#cf222e}.secondary{background:#57606a;border-color:#57606a}.row{display:grid;grid-template-columns:1fr 1fr 170px;gap:10px}.acl{display:grid;grid-template-columns:1fr 1fr;gap:12px}.small{color:#57606a;font-size:13px}</style></head><body><h1>Mesh Drive - Compartilhamentos</h1><p class="small">Tenant: <b>'+x(tenantKey(ctx))+'</b> | Arquivo: <code>'+x(fileName)+'</code> | /drive: arquivos pessoais na raiz</p><div id="list"></div><button onclick="addShare()">Adicionar compartilhamento</button><button class="secondary" onclick="load()">Recarregar</button><script>let data={shares:[]};function esc(s){return String(s||\'\').replace(/[&<>\"]/g,c=>({\'&\':\'&amp;\',\'<\':\'&lt;\',\'>\':\'&gt;\',\'"\':\'&quot;\'}[c]))}function splitList(v){return String(v||\'\').split(/\\n|,/).map(x=>x.trim()).filter(Boolean)}async function load(){const r=await fetch(location.pathname+\'/config\');data=await r.json();render()}function render(){const el=document.getElementById(\'list\');el.innerHTML=\'\';(data.shares||[]).forEach((s,i)=>{const d=document.createElement(\'div\');d.className=\'card\';d.innerHTML=`<div class="row"><div><label>Nome / Address Book</label><input data-field="name" value="${esc(s.name)}"></div><div><label>Diretório</label><input data-field="path" value="${esc(s.path)}"></div><div><label>Acesso anônimo</label><select data-field="anonymousAccess"><option value="none" ${(!s.anonymousAccess||s.anonymousAccess===\'none\')?\'selected\':\'\'}>Não permitir</option><option value="read" ${s.anonymousAccess===\'read\'?\'selected\':\'\'}>Somente leitura</option><option value="write" ${s.anonymousAccess===\'write\'?\'selected\':\'\'}>Leitura e gravação</option></select></div></div><div class="acl"><div><label>Usuários com leitura</label><textarea data-field="readUsers" rows="3">${esc((s.readUsers||s.users||[]).join(\'\\n\'))}</textarea></div><div><label>Usuários com gravação</label><textarea data-field="writeUsers" rows="3">${esc((s.writeUsers||[]).join(\'\\n\'))}</textarea></div><div><label>Grupos com leitura</label><textarea data-field="readGroups" rows="3">${esc((s.readGroups||s.groups||[]).join(\'\\n\'))}</textarea></div><div><label>Grupos com gravação</label><textarea data-field="writeGroups" rows="3">${esc((s.writeGroups||[]).join(\'\\n\'))}</textarea></div></div><br><button onclick="save()">Salvar</button><button class="danger" onclick="removeShare(${i})">Remover</button>`;el.appendChild(d)})}function collect(){data.shares=[...document.querySelectorAll(\'.card\')].map(card=>({name:card.querySelector(\'[data-field=name]\').value.trim(),path:card.querySelector(\'[data-field=path]\').value.trim(),anonymousAccess:card.querySelector(\'[data-field=anonymousAccess]\').value,readUsers:splitList(card.querySelector(\'[data-field=readUsers]\').value),writeUsers:splitList(card.querySelector(\'[data-field=writeUsers]\').value),readGroups:splitList(card.querySelector(\'[data-field=readGroups]\').value),writeGroups:splitList(card.querySelector(\'[data-field=writeGroups]\').value)}));}function addShare(){collect();data.shares.push({name:\'Novo\',path:\'shares/novo\',anonymousAccess:\'none\',readUsers:[],writeUsers:[],readGroups:[],writeGroups:[]});render()}function removeShare(i){collect();data.shares.splice(i,1);render()}async function save(){collect();const r=await fetch(location.pathname+\'/config\',{method:\'POST\',headers:{\'Content-Type\':\'application/json\'},body:JSON.stringify(data)});if(!r.ok){alert(await r.text());return}data=await r.json();render();alert(\'Configuração salva.\')}load();</script></body></html>'; }
   async function adminHandler(req,res){ const u=await auth(req,res,true,false); if(!u)return; const ctx=u.domainContext,pathname=(req.url||'').split('?')[0].replace(/\/$/,''); if(pathname.endsWith('/config')){ if((req.method||'GET').toUpperCase()==='GET'){ res.writeHead(200,{'Content-Type':'application/json;charset=utf-8'}); return res.end(JSON.stringify(readSharesConfig(ctx),null,2)); } if((req.method||'GET').toUpperCase()==='POST'){ try{ const saved=writeSharesConfig(ctx,JSON.parse(await readBody(req))); res.writeHead(200,{'Content-Type':'application/json;charset=utf-8'}); return res.end(JSON.stringify(saved,null,2)); }catch(e){ res.writeHead(400,{'Content-Type':'text/plain;charset=utf-8'}); return res.end(String(e.message||e)); } } } res.writeHead(200,{'Content-Type':'text/html;charset=utf-8'}); res.end(htmlPage(ctx)); }
+
+  function parseVcf(raw,file){
+    const lines=String(raw||'').replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+    const unfolded=[];
+    for(const l of lines){ if((l[0]===' '||l[0]==='\t')&&unfolded.length) unfolded[unfolded.length-1]+=l.slice(1); else unfolded.push(l); }
+    const c={file:file||'',uid:'',fn:'',firstName:'',lastName:'',email:'',phone:'',mobile:'',org:'',title:'',note:''};
+    for(const line of unfolded){
+      const i=line.indexOf(':'); if(i<0)continue;
+      const key=line.slice(0,i).split(';')[0].toUpperCase();
+      const val=line.slice(i+1).replace(/\\n/g,'\n').replace(/\\,/g,',').replace(/\\;/g,';');
+      if(key==='UID')c.uid=val;
+      else if(key==='FN')c.fn=val;
+      else if(key==='N'){ const n=val.split(';'); c.lastName=n[0]||''; c.firstName=n[1]||''; }
+      else if(key==='EMAIL'&&!c.email)c.email=val;
+      else if(key==='TEL'&&/CELL|MOBILE/i.test(line)&&!c.mobile)c.mobile=val;
+      else if(key==='TEL'&&!c.phone)c.phone=val;
+      else if(key==='ORG')c.org=val;
+      else if(key==='TITLE')c.title=val;
+      else if(key==='NOTE')c.note=val;
+    }
+    if(!c.fn)c.fn=((c.firstName+' '+c.lastName).trim()||c.email||c.phone||file||'Contato');
+    return c;
+  }
+  function escV(v){ return String(v||'').replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;'); }
+  function buildVcf(c){
+    c=c||{};
+    const uid=c.uid||crypto.randomUUID();
+    const fn=(c.fn||((c.firstName||'')+' '+(c.lastName||'')).trim()||c.email||c.phone||'Contato').trim();
+    const out=['BEGIN:VCARD','VERSION:3.0','UID:'+escV(uid),'FN:'+escV(fn),'N:'+escV(c.lastName||'')+';'+escV(c.firstName||'')+';;;'];
+    if(c.email)out.push('EMAIL;TYPE=INTERNET:'+escV(c.email));
+    if(c.phone)out.push('TEL;TYPE=WORK,VOICE:'+escV(c.phone));
+    if(c.mobile)out.push('TEL;TYPE=CELL:'+escV(c.mobile));
+    if(c.org)out.push('ORG:'+escV(c.org));
+    if(c.title)out.push('TITLE:'+escV(c.title));
+    if(c.note)out.push('NOTE:'+escV(c.note));
+    out.push('REV:'+new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z'));
+    out.push('END:VCARD');
+    return out.join('\r\n')+'\r\n';
+  }
+  function jsonRes(res,obj,code){ res.writeHead(code||200,{'Content-Type':'application/json; charset=utf-8'}); res.end(JSON.stringify(obj,null,2)); }
+  function booksForAdmin(ctx){
+    const u={id:'admin',username:'admin',anonymous:false,doc:{siteadmin:1},domainContext:ctx};
+    return readSharesConfig(ctx).shares.map(normalizeShare).map(s=>{
+      const root=shareRoot(u,s);
+      return {name:s.name,path:s.path,root,count:vcfFiles(root).length};
+    });
+  }
+  function findBook(ctx,name){ name=safe(name||''); return booksForAdmin(ctx).find(b=>safe(b.name).toLowerCase()===name.toLowerCase()); }
+  async function contactsApi(req,res,u,apiPath){
+    const url=new URL(req.url,'https://local');
+    const action=(apiPath||'').replace(/^\/api\/?/,'api/').replace(/^\//,'');
+    const ctx=u.domainContext;
+    try{
+      if(action==='api/books') return jsonRes(res,{tenant:tenantKey(ctx),books:booksForAdmin(ctx).map(b=>({name:b.name,path:b.path,count:b.count}))});
+      if(action==='api/list'){
+        const book=findBook(ctx,url.searchParams.get('book'));
+        if(!book){res.writeHead(404);return res.end('book not found');}
+        const list=vcfFiles(book.root).map(f=>parseVcf(fs.readFileSync(path.join(book.root,f),'utf8'),f));
+        list.sort((a,b)=>String(a.fn).localeCompare(String(b.fn)));
+        return jsonRes(res,{book:book.name,contacts:list});
+      }
+      if(action==='api/get'){
+        const book=findBook(ctx,url.searchParams.get('book'));
+        const file=safePath(url.searchParams.get('file')||'');
+        if(!book||!file){res.writeHead(404);return res.end('not found');}
+        const full=path.resolve(path.join(book.root,file));
+        if(full.indexOf(book.root+path.sep)!==0||!fs.existsSync(full)){res.writeHead(404);return res.end('not found');}
+        return jsonRes(res,parseVcf(fs.readFileSync(full,'utf8'),file));
+      }
+      if(action==='api/save' && (req.method||'GET').toUpperCase()==='POST'){
+        const data=JSON.parse(await readBody(req));
+        const book=findBook(ctx,data.book);
+        if(!book){res.writeHead(404);return res.end('book not found');}
+        let file=safePath(data.file||'');
+        if(!file) file=(data.contact&&data.contact.uid?slug(data.contact.uid):crypto.randomUUID())+'.vcf';
+        if(!file.toLowerCase().endsWith('.vcf')) file+='.vcf';
+        const full=path.resolve(path.join(book.root,file));
+        if(full.indexOf(book.root+path.sep)!==0){res.writeHead(403);return res.end('invalid path');}
+        fs.writeFileSync(full,buildVcf(data.contact||{}),'utf8');
+        return jsonRes(res,{ok:true,file});
+      }
+      if(action==='api/delete' && (req.method||'GET').toUpperCase()==='POST'){
+        const data=JSON.parse(await readBody(req));
+        const book=findBook(ctx,data.book);
+        const file=safePath(data.file||'');
+        if(!book||!file){res.writeHead(404);return res.end('not found');}
+        const full=path.resolve(path.join(book.root,file));
+        if(full.indexOf(book.root+path.sep)!==0){res.writeHead(403);return res.end('invalid path');}
+        if(fs.existsSync(full))fs.rmSync(full,{force:true});
+        return jsonRes(res,{ok:true});
+      }
+      res.writeHead(404); res.end('not found');
+    }catch(e){ if(cfg.debug)console.error(e); res.writeHead(500,{'Content-Type':'text/plain; charset=utf-8'}); res.end(String(e.message||e)); }
+  }
+  function contactsPage(ctx){ return '<!doctype html><html><head><meta charset="utf-8"><title>Mesh Contacts</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:24px;background:#f6f8fa;color:#24292f}.layout{display:grid;grid-template-columns:320px 1fr;gap:16px}.panel,.card{background:#fff;border:1px solid #d0d7de;border-radius:10px;padding:14px}.item{padding:8px;border-bottom:1px solid #eee;cursor:pointer}.item:hover{background:#f6f8fa}label{font-weight:600;display:block;margin-top:10px}input,textarea,select{width:100%;box-sizing:border-box;padding:8px;border:1px solid #d0d7de;border-radius:6px}button{padding:8px 12px;border-radius:6px;border:1px solid #1f6feb;background:#1f6feb;color:#fff;cursor:pointer;margin-top:12px;margin-right:6px}.danger{background:#cf222e;border-color:#cf222e}.secondary{background:#57606a;border-color:#57606a}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.small{color:#57606a;font-size:13px}</style></head><body><h1>Mesh Contacts</h1><p class="small">Tenant: <b>'+x(tenantKey(ctx))+'</b> | Editor de contatos VCF sincronizados pelo CardDAV</p><div class="layout"><div class="panel"><label>Address Book</label><select id="book" onchange="loadContacts()"></select><button onclick="newContact()">Novo contato</button><div id="list"></div></div><div class="card"><h2 id="title">Contato</h2><input type="hidden" id="file"><input type="hidden" id="uid"><div class="grid"><div><label>Nome completo</label><input id="fn"></div><div><label>E-mail</label><input id="email"></div><div><label>Nome</label><input id="firstName"></div><div><label>Sobrenome</label><input id="lastName"></div><div><label>Telefone</label><input id="phone"></div><div><label>Celular</label><input id="mobile"></div><div><label>Empresa</label><input id="org"></div><div><label>Cargo</label><input id="jobtitle"></div></div><label>Observações</label><textarea id="note" rows="5"></textarea><button onclick="saveContact()">Salvar contato</button><button class="danger" onclick="deleteContact()">Excluir</button><button class="secondary" onclick="loadContacts()">Atualizar lista</button></div></div><script>function esc(s){return String(s||\'\').replace(/[&<>\"]/g,c=>({\'&\':\'&amp;\',\'<\':\'&lt;\',\'>\':\'&gt;\',\'"\':\'&quot;\'}[c]))}async function init(){const r=await fetch(\'/meshcontacts/api/books\');const d=await r.json();const b=document.getElementById(\'book\');b.innerHTML=(d.books||[]).map(x=>`<option value="${esc(x.name)}">${esc(x.name)} (${x.count||0})</option>`).join(\'\');await loadContacts()}async function loadContacts(){const b=document.getElementById(\'book\').value;if(!b)return;const r=await fetch(\'/meshcontacts/api/list?book=\'+encodeURIComponent(b));const d=await r.json();document.getElementById(\'list\').innerHTML=(d.contacts||[]).map(c=>`<div class="item" onclick="editContact(\'${esc(c.file)}\')"><b>${esc(c.fn)}</b><br><span class="small">${esc(c.email||c.mobile||c.phone||c.file)}</span></div>`).join(\'\')}function setContact(c){document.getElementById(\'file\').value=c.file||\'\';document.getElementById(\'uid\').value=c.uid||\'\';document.getElementById(\'fn\').value=c.fn||\'\';document.getElementById(\'email\').value=c.email||\'\';document.getElementById(\'firstName\').value=c.firstName||\'\';document.getElementById(\'lastName\').value=c.lastName||\'\';document.getElementById(\'phone\').value=c.phone||\'\';document.getElementById(\'mobile\').value=c.mobile||\'\';document.getElementById(\'org\').value=c.org||\'\';document.getElementById(\'jobtitle\').value=c.title||\'\';document.getElementById(\'note\').value=c.note||\'\';document.getElementById(\'title\').innerText=c.file?\'Editar contato\':\'Novo contato\'}function newContact(){setContact({uid:crypto.randomUUID?crypto.randomUUID():String(Date.now())})}async function editContact(file){const b=document.getElementById(\'book\').value;const r=await fetch(\'/meshcontacts/api/get?book=\'+encodeURIComponent(b)+\'&file=\'+encodeURIComponent(file));setContact(await r.json())}function formContact(){return{uid:document.getElementById(\'uid\').value,fn:document.getElementById(\'fn\').value,email:document.getElementById(\'email\').value,firstName:document.getElementById(\'firstName\').value,lastName:document.getElementById(\'lastName\').value,phone:document.getElementById(\'phone\').value,mobile:document.getElementById(\'mobile\').value,org:document.getElementById(\'org\').value,title:document.getElementById(\'jobtitle\').value,note:document.getElementById(\'note\').value}}async function saveContact(){const body={book:document.getElementById(\'book\').value,file:document.getElementById(\'file\').value,contact:formContact()};const r=await fetch(\'/meshcontacts/api/save\',{method:\'POST\',headers:{\'Content-Type\':\'application/json\'},body:JSON.stringify(body)});if(!r.ok){alert(await r.text());return}const d=await r.json();document.getElementById(\'file\').value=d.file;await loadContacts();alert(\'Contato salvo.\')}async function deleteContact(){const file=document.getElementById(\'file\').value;if(!file){setContact({});return}if(!confirm(\'Excluir este contato?\'))return;const r=await fetch(\'/meshcontacts/api/delete\',{method:\'POST\',headers:{\'Content-Type\':\'application/json\'},body:JSON.stringify({book:document.getElementById(\'book\').value,file})});if(!r.ok){alert(await r.text());return}setContact({});await loadContacts()}init();</script></body></html>'; }
+  async function contactsHandler(req,res){
+    const u=await auth(req,res,true,false); if(!u)return;
+    const p=(req.url||'').split('?')[0];
+    const apiPath=(p.indexOf('/api/')===0)?p:(p.indexOf(cfg.contactsRoute+'/api/')===0?p.substring(cfg.contactsRoute.length):'');
+    if(apiPath)return contactsApi(req,res,u,apiPath);
+    res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'}); res.end(contactsPage(u.domainContext));
+  }
+
   function app(){ const c=[obj.meshServer&&obj.meshServer.webserver&&obj.meshServer.webserver.app,obj.meshServer&&obj.meshServer.app,parent&&parent.app,parent&&parent.webserver&&parent.webserver.app]; for(const a of c)if(a&&typeof a.use==='function')return a; return null; }
-  obj.hook_setupHttpHandlers=function(){ if(cfg.enabled===false)return; const key='__meshdrive_handlers_registered__'; if(global[key]){log('handlers already registered');return;} const a=app(); if(!a)return; global[key]=true; mkdir(pluginDir); mkdir(rootDomainForFolder(cfg.meshDomainFolder||'domain')); a.use(cfg.route,(req,res)=>driveDav(req,res)); a.use(cfg.carddavRoute,(req,res)=>carddav(req,res)); a.use(cfg.adminRoute,(req,res)=>adminHandler(req,res)); log('handlers registered once'); };
-  obj.server_startup=function(){ log('loaded 2.4.3-test'); };
+  obj.hook_setupHttpHandlers=function(){ if(cfg.enabled===false)return; const key='__meshdrive_handlers_registered__'; if(global[key]){log('handlers already registered');return;} const a=app(); if(!a)return; global[key]=true; mkdir(pluginDir); mkdir(rootDomainForFolder(cfg.meshDomainFolder||'domain')); a.use(cfg.route,(req,res)=>driveDav(req,res)); a.use(cfg.carddavRoute,(req,res)=>carddav(req,res)); a.use(cfg.adminRoute,(req,res)=>adminHandler(req,res)); a.use(cfg.contactsRoute,(req,res)=>contactsHandler(req,res)); log('handlers registered once'); };
+  obj.server_startup=function(){ log('loaded 1.2.7'); };
   obj.copyDetectedAddress=function(){ const host=window.location.hostname||window.location.host||'localhost'; const address='\\\\'+host+'@SSL\\drive'; if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(address).then(()=>alert('Endereço copiado:\n\n'+address),()=>prompt('Copie o endereço:',address)); else prompt('Copie o endereço:',address); };
   obj.copyMapCommand=function(){ const host=window.location.hostname||window.location.host||'localhost'; const command=['$meshHost="'+host.replace(/"/g,'')+'";','$path="\\\\$($meshHost)@SSL\\drive";','foreach($l in "M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"){','if(-not (Get-PSDrive -Name $l -ErrorAction SilentlyContinue)){','net use "$($l):" $path;','if($LASTEXITCODE -eq 0){explorer "$($l):\\"};','break','}','}'].join(''); if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(command).then(()=>alert('Comando copiado:\n\n'+command),()=>prompt('Copie o comando:',command)); else prompt('Copie o comando:',command); };
   obj.openMeshDriveAdmin=function(){ try{window.open('/meshdrive','_blank','noopener');}catch(e){window.location.href='/meshdrive';} };
-  obj.injectMeshDriveLauncher=function(){ try{ if(document.getElementById('plugin_meshDriveLauncher'))return; const b='<span id="plugin_meshDriveLauncher" style="display:inline-flex;align-items:center;gap:6px;margin-left:auto;white-space:nowrap;"><button onclick="pluginHandler.meshdrive.copyDetectedAddress();" style="padding:5px 9px;border-radius:6px;border:1px solid #57606a;background:#f6f8fa;color:#24292f;cursor:pointer;font-size:12px;line-height:16px;">Mesh Drive</button><button onclick="pluginHandler.meshdrive.copyMapCommand();" style="padding:5px 9px;border-radius:6px;border:1px solid #16803c;background:#16803c;color:white;cursor:pointer;font-size:12px;line-height:16px;">Mapear</button><button onclick="pluginHandler.meshdrive.openMeshDriveAdmin();" style="padding:5px 9px;border-radius:6px;border:1px solid #8250df;background:#8250df;color:white;cursor:pointer;font-size:12px;line-height:16px;">Compartilhamentos</button></span>'; let t=null,hs=document.querySelectorAll('h1,h2,h3,div,span'); for(let i=0;i<hs.length;i++){let txt=(hs[i].innerText||hs[i].textContent||'').trim().toLowerCase(); if(txt==='meus arquivos'||txt==='my files'){t=hs[i];break;}} if(t){t.style.display='flex';t.style.alignItems='center';t.style.flexWrap='nowrap';t.style.width='100%';t.insertAdjacentHTML('beforeend',b);} }catch(e){} };
+  obj.openMeshContactsAdmin=function(){ try{window.open('/meshcontacts','_blank','noopener');}catch(e){window.location.href='/meshcontacts';} };
+  obj.injectMeshDriveLauncher=function(){ try{ if(document.getElementById('plugin_meshDriveLauncher'))return; const b='<span id="plugin_meshDriveLauncher" style="display:inline-flex;align-items:center;gap:6px;margin-left:auto;white-space:nowrap;"><button onclick="pluginHandler.meshdrive.copyDetectedAddress();" style="padding:5px 9px;border-radius:6px;border:1px solid #57606a;background:#f6f8fa;color:#24292f;cursor:pointer;font-size:12px;line-height:16px;">Mesh Drive</button><button onclick="pluginHandler.meshdrive.copyMapCommand();" style="padding:5px 9px;border-radius:6px;border:1px solid #16803c;background:#16803c;color:white;cursor:pointer;font-size:12px;line-height:16px;">Mapear</button><button onclick="pluginHandler.meshdrive.openMeshDriveAdmin();" style="padding:5px 9px;border-radius:6px;border:1px solid #8250df;background:#8250df;color:white;cursor:pointer;font-size:12px;line-height:16px;">Compartilhamentos</button><button onclick="pluginHandler.meshdrive.openMeshContactsAdmin();" style="padding:5px 9px;border-radius:6px;border:1px solid #0969da;background:#0969da;color:white;cursor:pointer;font-size:12px;line-height:16px;">Contatos</button></span>'; let t=null,hs=document.querySelectorAll('h1,h2,h3,div,span'); for(let i=0;i<hs.length;i++){let txt=(hs[i].innerText||hs[i].textContent||'').trim().toLowerCase(); if(txt==='meus arquivos'||txt==='my files'){t=hs[i];break;}} if(t){t.style.display='flex';t.style.alignItems='center';t.style.flexWrap='nowrap';t.style.width='100%';t.insertAdjacentHTML('beforeend',b);} }catch(e){} };
   obj.onWebUIStartupEnd=function(){ setTimeout(pluginHandler.meshdrive.injectMeshDriveLauncher,500); setTimeout(pluginHandler.meshdrive.injectMeshDriveLauncher,2000); };
   obj.goPageEnd=function(){ setTimeout(pluginHandler.meshdrive.injectMeshDriveLauncher,300); };
   return obj;
