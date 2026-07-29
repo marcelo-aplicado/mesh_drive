@@ -1,3 +1,8 @@
+##### 1.2.11
+- Adicionado botão Contatos na barra do Mesh Drive.
+- Adicionada tela /meshdrive/contacts para listar, criar, editar e excluir contatos CardDAV em arquivos .vcf.
+- Mantida a base 1.2.10 e o fluxo WebDAV/CardDAV existente.
+
 #### 1.2.10
 - Adicionada flag `carddav` por compartilhamento.
 - Compartilhamentos com `carddav: true` aparecem somente na rota `/carddav`.
