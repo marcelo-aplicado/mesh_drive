@@ -1,3 +1,8 @@
+### Final sem logs
+- Removida a emissão de logs do plugin para evitar poluição no console do MeshCentral.
+- Mantida a versão funcional enviada pelo usuário, sem alterar o fluxo WebDAV/CardDAV.
+- `debug` definido como `false` por padrão e `function log(){}` aplicada no `meshdrive.js`.
+
 ## Changelog
 
 ### 1.2.8-minlogs

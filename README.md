@@ -283,7 +283,7 @@ Na interface administrativa é possível editar:
 
 ## Debug
 
-Logs ficam desligados por padrão. Para ativar:
+Logs ficam desligados por padrão. Nesta versão final, a função interna de log foi desativada para não poluir o console.
 
 ```json
 {

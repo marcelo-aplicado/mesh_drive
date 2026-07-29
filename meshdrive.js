@@ -14,7 +14,7 @@ module.exports.meshdrive = function (parent) {
   const pluginDir = __dirname;
   const cfg = Object.assign({
     enabled: true,
-    debug: true,
+    debug: false,
     route: '/drive',
     carddavRoute: '/carddav',
     adminRoute: '/meshdrive',
@@ -27,7 +27,7 @@ module.exports.meshdrive = function (parent) {
     readOnly: false
   }, settings.meshDrive || settings.meshdrive || {});
 
-  function log(m){ if(!cfg.debug) return; try{ console.log('PLUGIN: Mesh Drive: '+m); }catch(e){} }
+  function log(){}
   function safe(v){ return String(v||'').replace(/[^a-zA-Z0-9._ -]/g,'_').trim().slice(0,160)||'_'; }
   function slug(v){ return safe(v).replace(/ /g,'_'); }
   function safePath(v){ return String(v||'').replace(/^[\\/]+/,'').replace(/\.\./g,'_'); }
