@@ -1,3 +1,7 @@
+###### 1.2.12
+- Corrigido warning DEP0169 removendo uso de require('url').parse() na rota de contatos.
+- Substituído por WHATWG URL API mantendo o mesmo comportamento de leitura do parâmetro book.
+
 ##### 1.2.11
 - Adicionado botão Contatos na barra do Mesh Drive.
 - Adicionada tela /meshdrive/contacts para listar, criar, editar e excluir contatos CardDAV em arquivos .vcf.
