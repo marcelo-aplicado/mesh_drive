@@ -300,3 +300,20 @@ Logs ficam desligados por padrão. Para ativar:
 - Evite `anonymousAccess: "write"` em ambientes expostos à internet.
 - Use `anonymousAccess: "read"` apenas para dados que possam ser lidos por qualquer pessoa com acesso à URL.
 - Para ambientes corporativos, prefira gravação por usuário ou grupo.
+
+
+### Debug detalhado 1.2.7
+
+Esta versão de diagnóstico grava logs detalhados com o prefixo:
+
+```text
+PLUGIN: Mesh Drive:
+```
+
+Os logs incluem autenticação, tenant detectado, pasta do usuário, resolução de `/drive`, compartilhamentos permitidos e requisições CardDAV/WebDAV.
+
+Para acompanhar:
+
+```bash
+docker logs -f meshcentral | grep "PLUGIN: Mesh Drive"
+```
