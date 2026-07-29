@@ -302,15 +302,14 @@ Logs ficam desligados por padrão. Para ativar:
 - Para ambientes corporativos, prefira gravação por usuário ou grupo.
 
 
-### Debug detalhado 1.2.7
+### Debug mínimo 1.2.8
 
-Esta versão de diagnóstico grava logs detalhados com o prefixo:
+Esta versão mantém debug ligado no próprio plugin (`debug: true` no `meshdrive.js` e `debug: true` no `shares.json`), mas registra somente eventos essenciais para evitar excesso de I/O:
 
-```text
-PLUGIN: Mesh Drive:
-```
-
-Os logs incluem autenticação, tenant detectado, pasta do usuário, resolução de `/drive`, compartilhamentos permitidos e requisições CardDAV/WebDAV.
+- tenant detectado;
+- autenticação anônima ou autenticada;
+- pasta pessoal calculada;
+- existência da pasta pessoal no `PROPFIND` da raiz.
 
 Para acompanhar:
 

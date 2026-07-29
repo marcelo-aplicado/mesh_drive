@@ -27,31 +27,7 @@ module.exports.meshdrive = function (parent) {
     readOnly: false
   }, settings.meshDrive || settings.meshdrive || {});
 
-  function log(m){
-    try{
-      let fileDebug=false;
-      try{
-        const df=path.join(pluginDir,'shares.json');
-        if(fs.existsSync(df)){
-          const dd=JSON.parse(fs.readFileSync(df,'utf8'));
-          fileDebug=(dd && dd.debug===true);
-        }
-      }catch(ex){}
-      if(!cfg.debug && !fileDebug) return;
-      console.log('PLUGIN: Mesh Drive: '+m);
-    }catch(e){}
-  }
-  function logJson(label,obj){
-    try{
-      const seen=[];
-      log(label+'='+JSON.stringify(obj,function(k,v){
-        if(k && String(k).toLowerCase().indexOf('password')>=0) return '[hidden]';
-        if(k && String(k).toLowerCase().indexOf('hash')>=0) return '[hidden]';
-        if(typeof v==='object' && v!==null){ if(seen.indexOf(v)>=0) return '[circular]'; seen.push(v); }
-        return v;
-      }));
-    }catch(e){ log(label+'=[unserializable]'); }
-  }
+  function log(m){ if(!cfg.debug) return; try{ console.log('PLUGIN: Mesh Drive: '+m); }catch(e){} }
   function safe(v){ return String(v||'').replace(/[^a-zA-Z0-9._ -]/g,'_').trim().slice(0,160)||'_'; }
   function slug(v){ return safe(v).replace(/ /g,'_'); }
   function safePath(v){ return String(v||'').replace(/^[\\/]+/,'').replace(/\.\./g,'_'); }
@@ -73,7 +49,6 @@ module.exports.meshdrive = function (parent) {
   }
   function ensureSharesFile(ctx){ const f=sharesFileForContext(ctx); if(!fs.existsSync(f)){ mkdir(pluginDir); fs.writeFileSync(f,JSON.stringify(defaultShares(),null,2)); } return f; }
   function loadSharesStore(){
-    log('loadSharesStore file='+sharesFileForContext());
     const f=ensureSharesFile();
     try{
       const d=JSON.parse(fs.readFileSync(f,'utf8'));
@@ -116,7 +91,7 @@ module.exports.meshdrive = function (parent) {
     if(host){ const p=host.split('.').filter(Boolean); if(p[0]==='mesh'&&p[1]) addUnique(cand,domainFolderFromId(p[1])); if(p[0]) addUnique(cand,domainFolderFromId(p[0])); if(p[1]) addUnique(cand,domainFolderFromId(p[1])); }
     addUnique(cand,cfg.meshDomainFolder||'domain');
     let folder=cand[0]||'domain'; for(const c of cand){ if(fsDomainExists(c)){ folder=c; break; } }
-    log('resolveDomainContext host='+host+' domainId='+(domainId===null?'null':domainId)+' folder='+folder+' tenantId='+domainIdFromFolder(folder)+' candidates='+cand.join(',')); return {host,id:domainIdFromFolder(folder),folder};
+    log('ctx host='+host+' folder='+folder+' tenant='+domainIdFromFolder(folder)); return {host,id:domainIdFromFolder(folder),folder};
   }
 
   function parseBasic(req){ const h=req.headers.authorization||''; if(h.toLowerCase().indexOf('basic ')!==0)return null; let raw=''; try{raw=Buffer.from(h.substring(6),'base64').toString('utf8');}catch(e){return null;} const i=raw.indexOf(':'); if(i<0)return null; return {username:raw.substring(0,i),password:raw.substring(i+1)}; }
@@ -134,27 +109,25 @@ module.exports.meshdrive = function (parent) {
   function anonymousUser(ctx){ return {id:'anonymous',username:'anonymous',anonymous:true,doc:{},domainContext:ctx}; }
   async function auth(req,res,requireAdmin,optional){
     const ctx=resolveDomainContext(req),b=parseBasic(req);
-    log('auth start method='+(req.method||'')+' url='+(req.url||'')+' optional='+!!optional+' requireAdmin='+!!requireAdmin+' hasBasic='+!!b+' ctxHost='+ctx.host+' ctxId='+ctx.id+' ctxFolder='+ctx.folder);
     if(!b){
-      if(optional){ const au=anonymousUser(ctx); log('auth result anonymous username='+au.username+' folder='+ctx.folder); return au; }
-      log('auth challenge no basic credentials');
+      if(optional){ log('auth anonymous folder='+ctx.folder); return anonymousUser(ctx); }
+      log('auth challenge folder='+ctx.folder);
       authReq(res,requireAdmin?'Mesh Drive Admin':'Mesh Drive'); return null;
     }
-    log('auth basic username='+norm(b.username));
+    const nu=norm(b.username);
     const u=await validate(b.username,b.password,ctx);
-    if(!u){ log('auth failed username='+norm(b.username)+' ctxFolder='+ctx.folder); authReq(res,requireAdmin?'Mesh Drive Admin':'Mesh Drive'); return null; }
-    log('auth success username='+u.username+' id='+(u.id||'')+' anonymous='+!!u.anonymous+' ctxFolder='+(u.domainContext&&u.domainContext.folder));
-    if(requireAdmin&&!(u.doc&&u.doc.siteadmin&&u.doc.siteadmin!==0)){ log('auth admin denied username='+u.username); res.writeHead(403,{'Content-Type':'text/plain; charset=utf-8'});res.end('Admin required');return null;}
+    if(!u){ log('auth fail user='+nu+' folder='+ctx.folder); authReq(res,requireAdmin?'Mesh Drive Admin':'Mesh Drive'); return null; }
+    log('auth ok user='+u.username+' folder='+(u.domainContext&&u.domainContext.folder)+' anon='+!!u.anonymous);
+    if(requireAdmin&&!(u.doc&&u.doc.siteadmin&&u.doc.siteadmin!==0)){res.writeHead(403,{'Content-Type':'text/plain; charset=utf-8'});res.end('Admin required');return null;}
     return u;
   }
 
-  function tenantRoot(u){ const folder=(u&&u.domainContext&&u.domainContext.folder)||cfg.meshDomainFolder||'domain'; const p=rootDomainForFolder(folder); log('tenantRoot folder='+folder+' path='+p+' exists='+fs.existsSync(p)); return p; }
+  function tenantRoot(u){ return rootDomainForFolder((u&&u.domainContext&&u.domainContext.folder)||cfg.meshDomainFolder||'domain'); }
   function userRoot(u){
-    const tr=tenantRoot(u), uname=norm(u&&((u.username)||(u.id))||'user');
-    const r=path.join(tr,cfg.userFolderPrefix+uname);
-    log('userRoot username='+uname+' tenantRoot='+tr+' path='+r+' existsBefore='+fs.existsSync(r));
+    const name=norm((u&&(u.username||u.id))||'user');
+    const r=path.join(tenantRoot(u),cfg.userFolderPrefix+name);
+    log('userRoot user='+name+' path='+r+' exists='+fs.existsSync(r));
     mkdir(r);
-    log('userRoot resolved='+path.resolve(r)+' existsAfter='+fs.existsSync(r));
     return path.resolve(r);
   }
   function routePath(req,route){ let u=req.url||'/',q=u.indexOf('?'); if(q>=0)u=u.substring(0,q); try{u=decodeURIComponent(u);}catch(e){} if(u.indexOf(route)===0)u=u.substring(route.length); if(u.indexOf('/')!==0)u='/'+u; return u; }
@@ -162,15 +135,10 @@ module.exports.meshdrive = function (parent) {
   function userGroupIdentifiers(u){ const out=[]; if(!u||!u.doc)return out; ['groups','ugroups','usergroups'].forEach(k=>{ if(Array.isArray(u.doc[k]))u.doc[k].forEach(g=>{addUnique(out,String(g).toLowerCase());addUnique(out,norm(g));}); }); if(u.doc.links)Object.keys(u.doc.links).forEach(k=>{ if(k.toLowerCase().indexOf('usergroup')>=0||k.toLowerCase().indexOf('ugrp')>=0){addUnique(out,k.toLowerCase());addUnique(out,norm(k.split('/').pop()));} }); return out; }
   function hasAny(list,ids){ list=listField(list); if(list.indexOf('*')>=0)return true; for(const v of list)if(ids.indexOf(String(v).toLowerCase())>=0||ids.indexOf(norm(v))>=0)return true; return false; }
   function permissionForShare(share,u){ share=normalizeShare(share); if(u&&u.anonymous){ if(share.anonymousAccess==='write')return 'write'; if(share.anonymousAccess==='read')return 'read'; return null; } const ids=userIdentifiers(u),gids=userGroupIdentifiers(u); if(hasAny(share.writeUsers,ids)||hasAny(share.writeGroups,gids))return 'write'; if(hasAny(share.readUsers,ids)||hasAny(share.readGroups,gids))return 'read'; return null; }
-  function allowedShares(u){
-    const cfgShares=readSharesConfig(u.domainContext).shares.map(normalizeShare);
-    const allowed=cfgShares.map(s=>{ const perm=permissionForShare(s,u); if(!perm)return null; return Object.assign({},s,{permission:perm}); }).filter(Boolean);
-    log('allowedShares username='+(u&&u.username)+' anonymous='+!!(u&&u.anonymous)+' totalConfigured='+cfgShares.length+' allowed='+allowed.map(s=>s.name+':'+s.permission+':anon='+s.anonymousAccess).join('|'));
-    return allowed;
-  }
+  function allowedShares(u){ return readSharesConfig(u.domainContext).shares.map(normalizeShare).map(s=>{ const perm=permissionForShare(s,u); if(!perm)return null; return Object.assign({},s,{permission:perm}); }).filter(Boolean); }
   function findShareByName(u,name){ name=safe(name); for(const s of allowedShares(u))if(safe(s.name).toLowerCase()===name.toLowerCase())return s; return null; }
   function shareRoot(u,share){ const root=tenantRoot(u),rel=safePath(share.path||('shares/'+share.name)),p=path.resolve(path.join(root,rel)); if(p!==root&&p.indexOf(root+path.sep)!==0)return null; mkdir(p); return p; }
-  function driveTarget(u,rel){ log('driveTarget rel='+rel+' username='+(u&&u.username)+' anonymous='+!!(u&&u.anonymous)); const parts=rel.split('/').filter(Boolean); if(parts.length===0){ const root = u.anonymous ? null : userRoot(u); return {kind:'root',root,path:root,rel:'/',readOnly:u.anonymous||cfg.readOnly}; } const share=findShareByName(u,parts[0]); if(share){ const root=shareRoot(u,share),inside=parts.slice(1).join('/'),p=path.resolve(path.join(root,safePath(inside))); if(p!==root&&p.indexOf(root+path.sep)!==0)return null; return {kind:'share',share,root,path:p,rel:'/'+parts.join('/'),readOnly:share.permission!=='write'}; } if(u.anonymous) return null; const root=userRoot(u),p=path.resolve(path.join(root,safePath(parts.join('/')))); if(p!==root&&p.indexOf(root+path.sep)!==0)return null; return {kind:'personal',root,path:p,rel:'/'+parts.join('/'),readOnly:cfg.readOnly}; }
+  function driveTarget(u,rel){ const parts=rel.split('/').filter(Boolean); if(parts.length===0){ const root = u.anonymous ? null : userRoot(u); log('rootPropfind user='+(u&&u.username)+' anon='+!!(u&&u.anonymous)+' root='+root+' exists='+(root?fs.existsSync(root):false)+' depth='+depth); return {kind:'root',root,path:root,rel:'/',readOnly:u.anonymous||cfg.readOnly}; } const share=findShareByName(u,parts[0]); if(share){ const root=shareRoot(u,share),inside=parts.slice(1).join('/'),p=path.resolve(path.join(root,safePath(inside))); if(p!==root&&p.indexOf(root+path.sep)!==0)return null; return {kind:'share',share,root,path:p,rel:'/'+parts.join('/'),readOnly:share.permission!=='write'}; } if(u.anonymous) return null; const root=userRoot(u),p=path.resolve(path.join(root,safePath(parts.join('/')))); if(p!==root&&p.indexOf(root+path.sep)!==0)return null; return {kind:'personal',root,path:p,rel:'/'+parts.join('/'),readOnly:cfg.readOnly}; }
 
   function x(s){ return String(s).replace(/[<>&'"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;'}[c])); }
   function hrefFor(route,rel){ let r=rel||'/'; if(r.indexOf('/')!==0)r='/'+r; return route.replace(/\/$/,'')+encodeURI(r).replace(/#/g,'%23'); }
@@ -198,7 +166,7 @@ module.exports.meshdrive = function (parent) {
     }
     return xml(res,207,'<?xml version="1.0" encoding="utf-8"?><D:multistatus xmlns:D="DAV:">'+out+'</D:multistatus>');
   }
-  function handleRealDav(req,res,target,u){ log('handleRealDav method='+(req.method||'GET').toUpperCase()+' path='+(target&&target.path)+' kind='+(target&&target.kind)+' readOnly='+(target&&target.readOnly)); switch((req.method||'GET').toUpperCase()){
+  function handleRealDav(req,res,target,u){ switch((req.method||'GET').toUpperCase()){
     case 'PROPFIND': { if(!fs.existsSync(target.path)){res.writeHead(404);return res.end();} let out=propReal(target.path,target.rel); const depth=req.headers.depth||'1',st=fs.statSync(target.path); if(depth!=='0'&&st.isDirectory())fs.readdirSync(target.path).forEach(n=>{out+=propReal(path.join(target.path,n),path.posix.join(target.rel,n));}); return xml(res,207,'<?xml version="1.0" encoding="utf-8"?><D:multistatus xmlns:D="DAV:">'+out+'</D:multistatus>'); }
     case 'GET': case 'HEAD': { if(!fs.existsSync(target.path)){res.writeHead(404);return res.end();} const st=fs.statSync(target.path); if(st.isDirectory()){res.writeHead(403);return res.end();} res.writeHead(200,{'Content-Length':st.size}); if(req.method.toUpperCase()==='HEAD')res.end(); else fs.createReadStream(target.path).pipe(res); break; }
     case 'PUT': if(target.readOnly){res.writeHead(405);return res.end();} mkdir(path.dirname(target.path)); req.pipe(fs.createWriteStream(target.path)).on('finish',()=>{res.writeHead(201);res.end();}); break;
@@ -209,15 +177,7 @@ module.exports.meshdrive = function (parent) {
     case 'UNLOCK': res.writeHead(204); res.end(); break;
     default: res.writeHead(405); res.end(); }
   }
-  async function driveDav(req,res){
-    log('driveDav request method='+(req.method||'')+' url='+(req.url||'')+' host='+((req.headers&&(req.headers.host||req.headers['x-forwarded-host']))||''));
-    const u=await auth(req,res,false,true); if(!u)return;
-    const method=(req.method||'GET').toUpperCase();
-    if(method==='OPTIONS'){ log('driveDav OPTIONS'); return sendOptions(res,false); }
-    const rel=routePath(req,cfg.route),target=driveTarget(u,rel);
-    log('driveDav resolved rel='+rel+' username='+(u&&u.username)+' anonymous='+!!(u&&u.anonymous)+' target='+(target?target.kind:'null')+' path='+(target&&target.path)+' readOnly='+(target&&target.readOnly));
-    if(!target){res.writeHead(404);return res.end();}
-    try{ if(target.kind==='root'){
+  async function driveDav(req,res){ const u=await auth(req,res,false,true); if(!u)return; const method=(req.method||'GET').toUpperCase(); if(method==='OPTIONS')return sendOptions(res,false); const rel=routePath(req,cfg.route),target=driveTarget(u,rel); if(!target){res.writeHead(404);return res.end();} try{ if(target.kind==='root'){
       if(method==='PROPFIND')return rootPropfind(req,res,u);
       res.writeHead(403); return res.end();
     }
@@ -230,7 +190,7 @@ module.exports.meshdrive = function (parent) {
   function cardCollectionProps(name){ return '<D:displayname>'+x(name)+'</D:displayname><D:resourcetype><D:collection/><CARD:addressbook/></D:resourcetype><CARD:supported-address-data><CARD:address-data-type content-type="text/vcard" version="3.0"/><CARD:address-data-type content-type="text/vcard" version="4.0"/></CARD:supported-address-data>'; }
   function cardFileProps(file,full){ const st=fs.statSync(full); return '<D:displayname>'+x(file)+'</D:displayname><D:getetag>"'+st.size+'-'+Number(st.mtimeMs).toString(16)+'"</D:getetag><D:getcontenttype>text/vcard; charset=utf-8</D:getcontenttype><D:getcontentlength>'+st.size+'</D:getcontentlength><D:resourcetype/>'; }
   function cardData(full){ try{return '<CARD:address-data>'+x(fs.readFileSync(full,'utf8'))+'</CARD:address-data>';}catch(e){return '<CARD:address-data/>';} }
-  async function carddav(req,res){ log('carddav request method='+(req.method||'')+' url='+(req.url||'')); const u=await auth(req,res,false,true); if(!u)return; log('carddav user='+(u&&u.username)+' anonymous='+!!(u&&u.anonymous)); const method=(req.method||'GET').toUpperCase(); if(method==='OPTIONS')return sendOptions(res,true); const rel=routePath(req,cfg.carddavRoute),parts=rel.split('/').filter(Boolean),baseUser=norm(u.username||'anonymous'); try{
+  async function carddav(req,res){ const u=await auth(req,res,false,true); if(!u)return; const method=(req.method||'GET').toUpperCase(); if(method==='OPTIONS')return sendOptions(res,true); const rel=routePath(req,cfg.carddavRoute),parts=rel.split('/').filter(Boolean),baseUser=norm(u.username||'anonymous'); try{
     if(method==='PROPFIND'){
       const depth=req.headers.depth||'0'; let out='';
       if(parts.length===0){ out+=cardResp(cardHref('/'),'<D:displayname>Mesh Drive CardDAV</D:displayname><D:resourcetype><D:collection/></D:resourcetype><D:current-user-principal><D:href>'+x(cardHref('/principals/'+baseUser+'/'))+'</D:href></D:current-user-principal>'); return cardMulti(res,out); }
@@ -252,8 +212,8 @@ module.exports.meshdrive = function (parent) {
   function htmlPage(ctx){ const fileName=path.basename(sharesFileForContext(ctx)); return '<!doctype html><html><head><meta charset="utf-8"><title>Mesh Drive - Compartilhamentos</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:24px;background:#f6f8fa;color:#24292f}.card{background:white;border:1px solid #d0d7de;border-radius:10px;padding:18px;margin-bottom:14px}label{display:block;font-weight:600;margin:8px 0 4px}input,textarea,select{width:100%;box-sizing:border-box;padding:8px;border:1px solid #d0d7de;border-radius:6px}button{padding:8px 12px;border-radius:6px;border:1px solid #1f6feb;background:#1f6feb;color:white;cursor:pointer;margin-right:6px}.danger{background:#cf222e;border-color:#cf222e}.secondary{background:#57606a;border-color:#57606a}.row{display:grid;grid-template-columns:1fr 1fr 170px;gap:10px}.acl{display:grid;grid-template-columns:1fr 1fr;gap:12px}.small{color:#57606a;font-size:13px}</style></head><body><h1>Mesh Drive - Compartilhamentos</h1><p class="small">Tenant: <b>'+x(tenantKey(ctx))+'</b> | Arquivo: <code>'+x(fileName)+'</code> | /drive: arquivos pessoais na raiz</p><div id="list"></div><button onclick="addShare()">Adicionar compartilhamento</button><button class="secondary" onclick="load()">Recarregar</button><script>let data={shares:[]};function esc(s){return String(s||\'\').replace(/[&<>\"]/g,c=>({\'&\':\'&amp;\',\'<\':\'&lt;\',\'>\':\'&gt;\',\'"\':\'&quot;\'}[c]))}function splitList(v){return String(v||\'\').split(/\\n|,/).map(x=>x.trim()).filter(Boolean)}async function load(){const r=await fetch(location.pathname+\'/config\');data=await r.json();render()}function render(){const el=document.getElementById(\'list\');el.innerHTML=\'\';(data.shares||[]).forEach((s,i)=>{const d=document.createElement(\'div\');d.className=\'card\';d.innerHTML=`<div class="row"><div><label>Nome / Address Book</label><input data-field="name" value="${esc(s.name)}"></div><div><label>Diretório</label><input data-field="path" value="${esc(s.path)}"></div><div><label>Acesso anônimo</label><select data-field="anonymousAccess"><option value="none" ${(!s.anonymousAccess||s.anonymousAccess===\'none\')?\'selected\':\'\'}>Não permitir</option><option value="read" ${s.anonymousAccess===\'read\'?\'selected\':\'\'}>Somente leitura</option><option value="write" ${s.anonymousAccess===\'write\'?\'selected\':\'\'}>Leitura e gravação</option></select></div></div><div class="acl"><div><label>Usuários com leitura</label><textarea data-field="readUsers" rows="3">${esc((s.readUsers||s.users||[]).join(\'\\n\'))}</textarea></div><div><label>Usuários com gravação</label><textarea data-field="writeUsers" rows="3">${esc((s.writeUsers||[]).join(\'\\n\'))}</textarea></div><div><label>Grupos com leitura</label><textarea data-field="readGroups" rows="3">${esc((s.readGroups||s.groups||[]).join(\'\\n\'))}</textarea></div><div><label>Grupos com gravação</label><textarea data-field="writeGroups" rows="3">${esc((s.writeGroups||[]).join(\'\\n\'))}</textarea></div></div><br><button onclick="save()">Salvar</button><button class="danger" onclick="removeShare(${i})">Remover</button>`;el.appendChild(d)})}function collect(){data.shares=[...document.querySelectorAll(\'.card\')].map(card=>({name:card.querySelector(\'[data-field=name]\').value.trim(),path:card.querySelector(\'[data-field=path]\').value.trim(),anonymousAccess:card.querySelector(\'[data-field=anonymousAccess]\').value,readUsers:splitList(card.querySelector(\'[data-field=readUsers]\').value),writeUsers:splitList(card.querySelector(\'[data-field=writeUsers]\').value),readGroups:splitList(card.querySelector(\'[data-field=readGroups]\').value),writeGroups:splitList(card.querySelector(\'[data-field=writeGroups]\').value)}));}function addShare(){collect();data.shares.push({name:\'Novo\',path:\'shares/novo\',anonymousAccess:\'none\',readUsers:[],writeUsers:[],readGroups:[],writeGroups:[]});render()}function removeShare(i){collect();data.shares.splice(i,1);render()}async function save(){collect();const r=await fetch(location.pathname+\'/config\',{method:\'POST\',headers:{\'Content-Type\':\'application/json\'},body:JSON.stringify(data)});if(!r.ok){alert(await r.text());return}data=await r.json();render();alert(\'Configuração salva.\')}load();</script></body></html>'; }
   async function adminHandler(req,res){ const u=await auth(req,res,true,false); if(!u)return; const ctx=u.domainContext,pathname=(req.url||'').split('?')[0].replace(/\/$/,''); if(pathname.endsWith('/config')){ if((req.method||'GET').toUpperCase()==='GET'){ res.writeHead(200,{'Content-Type':'application/json;charset=utf-8'}); return res.end(JSON.stringify(readSharesConfig(ctx),null,2)); } if((req.method||'GET').toUpperCase()==='POST'){ try{ const saved=writeSharesConfig(ctx,JSON.parse(await readBody(req))); res.writeHead(200,{'Content-Type':'application/json;charset=utf-8'}); return res.end(JSON.stringify(saved,null,2)); }catch(e){ res.writeHead(400,{'Content-Type':'text/plain;charset=utf-8'}); return res.end(String(e.message||e)); } } } res.writeHead(200,{'Content-Type':'text/html;charset=utf-8'}); res.end(htmlPage(ctx)); }
   function app(){ const c=[obj.meshServer&&obj.meshServer.webserver&&obj.meshServer.webserver.app,obj.meshServer&&obj.meshServer.app,parent&&parent.app,parent&&parent.webserver&&parent.webserver.app]; for(const a of c)if(a&&typeof a.use==='function')return a; return null; }
-  obj.hook_setupHttpHandlers=function(){ log('hook_setupHttpHandlers start enabled='+cfg.enabled+' route='+cfg.route+' carddavRoute='+cfg.carddavRoute+' adminRoute='+cfg.adminRoute+' meshFilesRoot='+cfg.meshFilesRoot+' debug='+cfg.debug); if(cfg.enabled===false)return; const key='__meshdrive_handlers_registered__'; if(global[key]){log('handlers already registered');return;} const a=app(); if(!a)return; global[key]=true; mkdir(pluginDir); mkdir(rootDomainForFolder(cfg.meshDomainFolder||'domain')); a.use(cfg.route,(req,res)=>driveDav(req,res)); a.use(cfg.carddavRoute,(req,res)=>carddav(req,res)); a.use(cfg.adminRoute,(req,res)=>adminHandler(req,res)); log('handlers registered once'); };
-  obj.server_startup=function(){ log('loaded 1.2.7-debug'); };
+  obj.hook_setupHttpHandlers=function(){ log('setup routes route='+cfg.route+' carddavRoute='+cfg.carddavRoute+' adminRoute='+cfg.adminRoute+' meshFilesRoot='+cfg.meshFilesRoot); if(cfg.enabled===false)return; const key='__meshdrive_handlers_registered__'; if(global[key]){log('handlers already registered');return;} const a=app(); if(!a)return; global[key]=true; mkdir(pluginDir); mkdir(rootDomainForFolder(cfg.meshDomainFolder||'domain')); a.use(cfg.route,(req,res)=>driveDav(req,res)); a.use(cfg.carddavRoute,(req,res)=>carddav(req,res)); a.use(cfg.adminRoute,(req,res)=>adminHandler(req,res)); log('handlers registered once'); };
+  obj.server_startup=function(){ log('loaded 1.2.8-minlogs'); };
   obj.copyDetectedAddress=function(){ const host=window.location.hostname||window.location.host||'localhost'; const address='\\\\'+host+'@SSL\\drive'; if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(address).then(()=>alert('Endereço copiado:\n\n'+address),()=>prompt('Copie o endereço:',address)); else prompt('Copie o endereço:',address); };
   obj.copyMapCommand=function(){ const host=window.location.hostname||window.location.host||'localhost'; const command=['$meshHost="'+host.replace(/"/g,'')+'";','$path="\\\\$($meshHost)@SSL\\drive";','foreach($l in "M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"){','if(-not (Get-PSDrive -Name $l -ErrorAction SilentlyContinue)){','net use "$($l):" $path;','if($LASTEXITCODE -eq 0){explorer "$($l):\\"};','break','}','}'].join(''); if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(command).then(()=>alert('Comando copiado:\n\n'+command),()=>prompt('Copie o comando:',command)); else prompt('Copie o comando:',command); };
   obj.openMeshDriveAdmin=function(){ try{window.open('/meshdrive','_blank','noopener');}catch(e){window.location.href='/meshdrive';} };
