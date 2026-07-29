@@ -1,7 +1,7 @@
 {
   "name": "Mesh Drive",
   "shortName": "meshdrive",
-  "version": "1.2.8",
+  "version": "1.2.9",
   "author": "Marcelo Henrique da Silva / CRS Brands",
   "description": "WebDAV e CardDAV para MeshCentral com compartilhamentos multi-tenant, interface administrativa, edição de contatos VCF e login anônimo restrito ao compartilhamento permitido.",
   "hasAdminPanel": false,
