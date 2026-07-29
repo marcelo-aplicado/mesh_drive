@@ -15,7 +15,8 @@
           "writeGroups": [
             "TI"
           ],
-          "anonymousAccess": "read"
+          "anonymousAccess": "read",
+          "carddav": true
         }
       ]
     },
@@ -34,7 +35,8 @@
           "writeGroups": [
             "TI"
           ],
-          "anonymousAccess": "read"
+          "anonymousAccess": "read",
+          "carddav": true
         }
       ]
     },
@@ -53,7 +55,8 @@
           "writeGroups": [
             "TI"
           ],
-          "anonymousAccess": "read"
+          "anonymousAccess": "read",
+          "carddav": true
         }
       ]
     },
@@ -72,7 +75,8 @@
           "writeGroups": [
             "TI"
           ],
-          "anonymousAccess": "read"
+          "anonymousAccess": "read",
+          "carddav": true
         }
       ]
     }
