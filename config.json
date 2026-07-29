@@ -1,9 +1,9 @@
 {
   "name": "Mesh Drive",
   "shortName": "meshdrive",
-  "version": "1.2.10",
+  "version": "1.2.9",
   "author": "Marcelo Henrique da Silva / CRS Brands",
-  "description": "WebDAV e CardDAV para MeshCentral com compartilhamentos multi-tenant, interface administrativa, edição de contatos VCF e logs mínimos de diagnóstico.",
+  "description": "WebDAV e CardDAV para MeshCentral com compartilhamentos multi-tenant, interface administrativa, edição de contatos VCF e login anônimo restrito ao compartilhamento permitido.",
   "hasAdminPanel": false,
   "homepage": "https://github.com/marcelo-aplicado/mesh_drive",
   "changelogUrl": "https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/changelog.md",

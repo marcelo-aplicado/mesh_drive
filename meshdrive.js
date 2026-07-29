@@ -14,7 +14,7 @@ module.exports.meshdrive = function (parent) {
   const pluginDir = __dirname;
   const cfg = Object.assign({
     enabled: true,
-    debug: false,
+    debug: true,
     route: '/drive',
     carddavRoute: '/carddav',
     adminRoute: '/meshdrive',
@@ -234,7 +234,7 @@ module.exports.meshdrive = function (parent) {
   async function adminHandler(req,res){ const u=await auth(req,res,true,false); if(!u)return; const ctx=u.domainContext,pathname=(req.url||'').split('?')[0].replace(/\/$/,''); if(pathname.endsWith('/config')){ if((req.method||'GET').toUpperCase()==='GET'){ res.writeHead(200,{'Content-Type':'application/json;charset=utf-8'}); return res.end(JSON.stringify(readSharesConfig(ctx),null,2)); } if((req.method||'GET').toUpperCase()==='POST'){ try{ const saved=writeSharesConfig(ctx,JSON.parse(await readBody(req))); res.writeHead(200,{'Content-Type':'application/json;charset=utf-8'}); return res.end(JSON.stringify(saved,null,2)); }catch(e){ res.writeHead(400,{'Content-Type':'text/plain;charset=utf-8'}); return res.end(String(e.message||e)); } } } res.writeHead(200,{'Content-Type':'text/html;charset=utf-8'}); res.end(htmlPage(ctx)); }
   function app(){ const c=[obj.meshServer&&obj.meshServer.webserver&&obj.meshServer.webserver.app,obj.meshServer&&obj.meshServer.app,parent&&parent.app,parent&&parent.webserver&&parent.webserver.app]; for(const a of c)if(a&&typeof a.use==='function')return a; return null; }
   obj.hook_setupHttpHandlers=function(){ log('setup routes route='+cfg.route+' carddavRoute='+cfg.carddavRoute+' adminRoute='+cfg.adminRoute+' meshFilesRoot='+cfg.meshFilesRoot); if(cfg.enabled===false)return; const key='__meshdrive_handlers_registered__'; if(global[key]){log('handlers already registered');return;} const a=app(); if(!a)return; global[key]=true; mkdir(pluginDir); mkdir(rootDomainForFolder(cfg.meshDomainFolder||'domain')); a.use(cfg.route,(req,res)=>driveDav(req,res)); a.use(cfg.carddavRoute,(req,res)=>carddav(req,res)); a.use(cfg.adminRoute,(req,res)=>adminHandler(req,res)); log('handlers registered once'); };
-  obj.server_startup=function(){ log('loaded 1.2.10'); };
+  obj.server_startup=function(){ log('loaded 1.2.9-authshare'); };
   obj.copyDetectedAddress=function(){ const host=window.location.hostname||window.location.host||'localhost'; const address='\\\\'+host+'@SSL\\drive'; if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(address).then(()=>alert('Endereço copiado:\n\n'+address),()=>prompt('Copie o endereço:',address)); else prompt('Copie o endereço:',address); };
   obj.copyMapCommand=function(){ const host=window.location.hostname||window.location.host||'localhost'; const command=['$meshHost="'+host.replace(/"/g,'')+'";','$path="\\\\$($meshHost)@SSL\\drive";','foreach($l in "M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"){','if(-not (Get-PSDrive -Name $l -ErrorAction SilentlyContinue)){','net use "$($l):" $path;','if($LASTEXITCODE -eq 0){explorer "$($l):\\"};','break','}','}'].join(''); if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(command).then(()=>alert('Comando copiado:\n\n'+command),()=>prompt('Copie o comando:',command)); else prompt('Copie o comando:',command); };
   obj.openMeshDriveAdmin=function(){ try{window.open('/meshdrive','_blank','noopener');}catch(e){window.location.href='/meshdrive';} };
