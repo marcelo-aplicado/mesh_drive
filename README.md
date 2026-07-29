@@ -1,6 +1,6 @@
 # Mesh Drive
 
-Versão `2.4.4-test`.
+Versão `2.4.5-test`.
 
 ## Rotas
 
@@ -10,18 +10,21 @@ https://<HOSTNAME>/carddav
 https://<HOSTNAME>/meshdrive
 ```
 
-## Comportamento do `/drive`
+## Ícones de compartilhamento
 
-A rota `/drive` mostra os arquivos pessoais diretamente na raiz e adiciona os compartilhamentos permitidos como pastas virtuais.
+Cada compartilhamento pode ter o campo:
 
-Exemplo:
-
-```text
-/drive
-├── Arquivo pessoal.pdf
-├── Pasta pessoal
-└── Contatos
+```json
+"icon": "folder"
 ```
+
+Valores disponíveis:
+
+- `folder`: pasta padrão;
+- `contact`: ícone de contatos;
+- `public`: ícone público/compartilhado.
+
+A interface `/meshdrive` possui um seletor para escolher o ícone.
 
 ## Configuração padrão
 
@@ -35,26 +38,13 @@ Exemplo:
       "writeUsers": ["marcelo"],
       "readGroups": [],
       "writeGroups": ["TI"],
-      "anonymousAccess": "read"
+      "anonymousAccess": "read",
+      "icon": "contact"
     }
   ]
 }
 ```
 
-## Observação
+## Observação sobre Windows
 
-Se existir um arquivo `shares-<tenant>.json` no servidor, ele não será sobrescrito automaticamente pelo arquivo padrão do pacote.
-
-## Debug
-
-Logs ficam desativados por padrão. Para ativar:
-
-```json
-{
-  "settings": {
-    "meshDrive": {
-      "debug": true
-    }
-  }
-}
-```
+O plugin tenta criar `desktop.ini` e `.ico` dentro da pasta física do compartilhamento. O Windows Explorer pode depender de cache e comportamento do WebDAV para aplicar o ícone.
