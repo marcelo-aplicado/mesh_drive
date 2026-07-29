@@ -14,7 +14,7 @@ module.exports.meshdrive = function (parent) {
   const pluginDir = __dirname;
   const cfg = Object.assign({
     enabled: true,
-    debug: true,
+    debug: false,
     route: '/drive',
     carddavRoute: '/carddav',
     adminRoute: '/meshdrive',
@@ -121,27 +121,6 @@ module.exports.meshdrive = function (parent) {
     if(requireAdmin&&!(u.doc&&u.doc.siteadmin&&u.doc.siteadmin!==0)){res.writeHead(403,{'Content-Type':'text/plain; charset=utf-8'});res.end('Admin required');return null;}
     return u;
   }
-  async function authDrive(req,res,rel){
-    const ctx=resolveDomainContext(req),b=parseBasic(req);
-    if(!b){
-      const parts=String(rel||'/').split('/').filter(Boolean);
-      if(parts.length>0){
-        const au=anonymousUser(ctx);
-        const share=findShareByName(au,parts[0]);
-        if(share){ log('auth anonymous share='+share.name+' folder='+ctx.folder); return au; }
-      }
-      log('auth challenge folder='+ctx.folder);
-      authReq(res,'Mesh Drive');
-      return null;
-    }
-    const nu=norm(b.username);
-    const u=await validate(b.username,b.password,ctx);
-    if(!u){ log('auth fail user='+nu+' folder='+ctx.folder); authReq(res,'Mesh Drive'); return null; }
-    log('auth ok user='+u.username+' folder='+(u.domainContext&&u.domainContext.folder)+' anon='+!!u.anonymous);
-    return u;
-  }
-
-
 
   function tenantRoot(u){ return rootDomainForFolder((u&&u.domainContext&&u.domainContext.folder)||cfg.meshDomainFolder||'domain'); }
   function userRoot(u){
@@ -159,7 +138,7 @@ module.exports.meshdrive = function (parent) {
   function allowedShares(u){ return readSharesConfig(u.domainContext).shares.map(normalizeShare).map(s=>{ const perm=permissionForShare(s,u); if(!perm)return null; return Object.assign({},s,{permission:perm}); }).filter(Boolean); }
   function findShareByName(u,name){ name=safe(name); for(const s of allowedShares(u))if(safe(s.name).toLowerCase()===name.toLowerCase())return s; return null; }
   function shareRoot(u,share){ const root=tenantRoot(u),rel=safePath(share.path||('shares/'+share.name)),p=path.resolve(path.join(root,rel)); if(p!==root&&p.indexOf(root+path.sep)!==0)return null; mkdir(p); return p; }
-  function driveTarget(u,rel){ const parts=rel.split('/').filter(Boolean); if(parts.length===0){ const root = u.anonymous ? null : userRoot(u); log('rootPropfind user='+(u&&u.username)+' anon='+!!(u&&u.anonymous)+' root='+root+' exists='+(root?fs.existsSync(root):false)); return {kind:'root',root,path:root,rel:'/',readOnly:u.anonymous||cfg.readOnly}; } const share=findShareByName(u,parts[0]); if(share){ const root=shareRoot(u,share),inside=parts.slice(1).join('/'),p=path.resolve(path.join(root,safePath(inside))); if(p!==root&&p.indexOf(root+path.sep)!==0)return null; return {kind:'share',share,root,path:p,rel:'/'+parts.join('/'),readOnly:share.permission!=='write'}; } if(u.anonymous) return null; const root=userRoot(u),p=path.resolve(path.join(root,safePath(parts.join('/')))); if(p!==root&&p.indexOf(root+path.sep)!==0)return null; return {kind:'personal',root,path:p,rel:'/'+parts.join('/'),readOnly:cfg.readOnly}; }
+  function driveTarget(u,rel){ const parts=rel.split('/').filter(Boolean); if(parts.length===0){ const root = u.anonymous ? null : userRoot(u); log('rootPropfind user='+(u&&u.username)+' anon='+!!(u&&u.anonymous)+' root='+root+' exists='+(root?fs.existsSync(root):false)+' depth='+depth); return {kind:'root',root,path:root,rel:'/',readOnly:u.anonymous||cfg.readOnly}; } const share=findShareByName(u,parts[0]); if(share){ const root=shareRoot(u,share),inside=parts.slice(1).join('/'),p=path.resolve(path.join(root,safePath(inside))); if(p!==root&&p.indexOf(root+path.sep)!==0)return null; return {kind:'share',share,root,path:p,rel:'/'+parts.join('/'),readOnly:share.permission!=='write'}; } if(u.anonymous) return null; const root=userRoot(u),p=path.resolve(path.join(root,safePath(parts.join('/')))); if(p!==root&&p.indexOf(root+path.sep)!==0)return null; return {kind:'personal',root,path:p,rel:'/'+parts.join('/'),readOnly:cfg.readOnly}; }
 
   function x(s){ return String(s).replace(/[<>&'"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;'}[c])); }
   function hrefFor(route,rel){ let r=rel||'/'; if(r.indexOf('/')!==0)r='/'+r; return route.replace(/\/$/,'')+encodeURI(r).replace(/#/g,'%23'); }
@@ -198,7 +177,7 @@ module.exports.meshdrive = function (parent) {
     case 'UNLOCK': res.writeHead(204); res.end(); break;
     default: res.writeHead(405); res.end(); }
   }
-  async function driveDav(req,res){ const method=(req.method||'GET').toUpperCase(); if(method==='OPTIONS')return sendOptions(res,false); const rel=routePath(req,cfg.route),u=await authDrive(req,res,rel); if(!u)return; const target=driveTarget(u,rel); if(!target){res.writeHead(404);return res.end();} try{ if(target.kind==='root'){
+  async function driveDav(req,res){ const u=await auth(req,res,false,true); if(!u)return; const method=(req.method||'GET').toUpperCase(); if(method==='OPTIONS')return sendOptions(res,false); const rel=routePath(req,cfg.route),target=driveTarget(u,rel); if(!target){res.writeHead(404);return res.end();} try{ if(target.kind==='root'){
       if(method==='PROPFIND')return rootPropfind(req,res,u);
       res.writeHead(403); return res.end();
     }
@@ -234,7 +213,7 @@ module.exports.meshdrive = function (parent) {
   async function adminHandler(req,res){ const u=await auth(req,res,true,false); if(!u)return; const ctx=u.domainContext,pathname=(req.url||'').split('?')[0].replace(/\/$/,''); if(pathname.endsWith('/config')){ if((req.method||'GET').toUpperCase()==='GET'){ res.writeHead(200,{'Content-Type':'application/json;charset=utf-8'}); return res.end(JSON.stringify(readSharesConfig(ctx),null,2)); } if((req.method||'GET').toUpperCase()==='POST'){ try{ const saved=writeSharesConfig(ctx,JSON.parse(await readBody(req))); res.writeHead(200,{'Content-Type':'application/json;charset=utf-8'}); return res.end(JSON.stringify(saved,null,2)); }catch(e){ res.writeHead(400,{'Content-Type':'text/plain;charset=utf-8'}); return res.end(String(e.message||e)); } } } res.writeHead(200,{'Content-Type':'text/html;charset=utf-8'}); res.end(htmlPage(ctx)); }
   function app(){ const c=[obj.meshServer&&obj.meshServer.webserver&&obj.meshServer.webserver.app,obj.meshServer&&obj.meshServer.app,parent&&parent.app,parent&&parent.webserver&&parent.webserver.app]; for(const a of c)if(a&&typeof a.use==='function')return a; return null; }
   obj.hook_setupHttpHandlers=function(){ log('setup routes route='+cfg.route+' carddavRoute='+cfg.carddavRoute+' adminRoute='+cfg.adminRoute+' meshFilesRoot='+cfg.meshFilesRoot); if(cfg.enabled===false)return; const key='__meshdrive_handlers_registered__'; if(global[key]){log('handlers already registered');return;} const a=app(); if(!a)return; global[key]=true; mkdir(pluginDir); mkdir(rootDomainForFolder(cfg.meshDomainFolder||'domain')); a.use(cfg.route,(req,res)=>driveDav(req,res)); a.use(cfg.carddavRoute,(req,res)=>carddav(req,res)); a.use(cfg.adminRoute,(req,res)=>adminHandler(req,res)); log('handlers registered once'); };
-  obj.server_startup=function(){ log('loaded 1.2.9-authshare'); };
+  obj.server_startup=function(){ log('loaded 1.2.10'); };
   obj.copyDetectedAddress=function(){ const host=window.location.hostname||window.location.host||'localhost'; const address='\\\\'+host+'@SSL\\drive'; if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(address).then(()=>alert('Endereço copiado:\n\n'+address),()=>prompt('Copie o endereço:',address)); else prompt('Copie o endereço:',address); };
   obj.copyMapCommand=function(){ const host=window.location.hostname||window.location.host||'localhost'; const command=['$meshHost="'+host.replace(/"/g,'')+'";','$path="\\\\$($meshHost)@SSL\\drive";','foreach($l in "M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"){','if(-not (Get-PSDrive -Name $l -ErrorAction SilentlyContinue)){','net use "$($l):" $path;','if($LASTEXITCODE -eq 0){explorer "$($l):\\"};','break','}','}'].join(''); if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(command).then(()=>alert('Comando copiado:\n\n'+command),()=>prompt('Copie o comando:',command)); else prompt('Copie o comando:',command); };
   obj.openMeshDriveAdmin=function(){ try{window.open('/meshdrive','_blank','noopener');}catch(e){window.location.href='/meshdrive';} };

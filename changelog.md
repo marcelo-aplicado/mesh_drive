@@ -1,3 +1,7 @@
+### 1.2.10
+- Debug desabilitado por padrão (debug: false).
+- Logs exibidos apenas quando habilitados no config.json do MeshCentral.
+
 ## Changelog
 
 ### 1.2.8-minlogs
