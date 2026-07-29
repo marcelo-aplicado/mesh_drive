@@ -1,13 +1,12 @@
 # Changelog
 
-## 2.2.3-test
-- Corrigido isolamento Multi-Tenancy da configuração de compartilhamentos.
-- O plugin deixa de usar um `shares.json` global e passa a usar arquivos por tenant.
-- Tenant padrão usa `shares-domain.json`.
-- Tenant CRS Brands usa `shares-crsbrands.json`.
-- A interface `/meshdrive` lê e salva o arquivo do tenant acessado pelo hostname.
-- A rota `/shared` também usa o arquivo do tenant da requisição.
+## 2.3.0-test
+- Criada rota única WebDAV `/drive` para arquivos pessoais e compartilhamentos.
+- A raiz de `/drive` passa a exibir uma pasta virtual `Pessoal` e os compartilhamentos permitidos do tenant.
+- Removida a necessidade de acessar `/shared` para compartilhamentos.
+- A configuração de compartilhamentos continua isolada por tenant: `shares-domain.json`, `shares-crsbrands.json`, etc.
 - Mantido modelo ACL com `readUsers`, `writeUsers`, `readGroups` e `writeGroups`.
+- Mantida interface administrativa `/meshdrive`.
 
-## 2.2.2-test
-- Modelo ACL com usuários/grupos separados para leitura e gravação.
+## 2.2.3-test
+- Isolamento de compartilhamentos por tenant.

@@ -1,22 +1,26 @@
 # Mesh Drive
 
-Mesh Drive expõe o **My Files** do MeshCentral via WebDAV em `/drive` e uma rota experimental `/shared` para compartilhamentos.
-
-## Rotas
-
-Área pessoal:
+Mesh Drive expõe arquivos pessoais e compartilhamentos em uma única rota WebDAV:
 
 ```text
 \\<HOSTNAME>@SSL\drive
 ```
 
-Compartilhamentos:
+## Estrutura no WebDAV
+
+Ao acessar `/drive`, o usuário verá:
 
 ```text
-\\<HOSTNAME>@SSL\shared
+Pessoal
+Public
+TI
+Financeiro
 ```
 
-Interface administrativa:
+- `Pessoal`: área privada do usuário autenticado.
+- Demais pastas: compartilhamentos permitidos pelo arquivo de configuração do tenant.
+
+## Interface administrativa
 
 ```text
 https://<HOSTNAME>/meshdrive
@@ -24,18 +28,12 @@ https://<HOSTNAME>/meshdrive
 
 ## Configuração por tenant
 
-A versão `2.2.3-test` isola as configurações de compartilhamento por tenant.
-
 Exemplos:
 
 ```text
 meshcentral-data/plugins/meshdrive/shares-domain.json
 meshcentral-data/plugins/meshdrive/shares-crsbrands.json
-meshcentral-data/plugins/meshdrive/shares-mhs.json
-meshcentral-data/plugins/meshdrive/shares-fastcopy.json
 ```
-
-O tenant é resolvido pelo hostname e pela seção `domains` do MeshCentral.
 
 ## Modelo de permissões
 
@@ -59,12 +57,3 @@ O tenant é resolvido pelo hostname e pela seção `domains` do MeshCentral.
 - `readGroups`: grupos com leitura.
 - `writeGroups`: grupos com gravação. Gravação também implica leitura.
 - Use `*` em `readUsers` para liberar leitura para todos os usuários autenticados.
-
-## Multi-Tenancy
-
-Cada tenant usa configuração e diretório de arquivos próprios.
-
-```text
-mesh.aplicado.com.br    -> shares-domain.json      -> meshcentral-files/domain
-mesh.crsbrands.com.br  -> shares-crsbrands.json   -> meshcentral-files/domain-crsbrands
-```
