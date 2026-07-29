@@ -1,12 +1,12 @@
 # Changelog
 
+## 2.4.3-test
+- Rota `/drive` alterada para exibir os arquivos pessoais diretamente na raiz.
+- Compartilhamentos continuam aparecendo como pastas virtuais na raiz de `/drive`.
+- Removida a necessidade da pasta virtual `Pessoal`.
+- Mantido CardDAV separado em `/carddav`.
+- Mantida versão de estabilização: logs desativados por padrão, trava contra handlers duplicados e limite de CardDAV REPORT.
+- Arquivo padrão `shares-domain.json` atualizado com o address book `Contatos`, diretório `contatos`, leitura `*`, gravação `marcelo`, grupo de gravação `TI` e acesso anônimo somente leitura.
+
 ## 2.4.2-test
 - Versão de estabilização.
-- Logs do plugin desativados por padrão.
-- Adicionada trava global para impedir registro duplicado de rotas em `hook_setupHttpHandlers`.
-- Mantidas rotas `/drive`, `/carddav` e `/meshdrive`.
-- Mantido acesso anônimo por compartilhamento usando `anonymousAccess`.
-- Adicionado limite de segurança para respostas CardDAV REPORT.
-
-## 2.4.1-test
-- Acesso anônimo por compartilhamento.

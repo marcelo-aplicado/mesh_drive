@@ -1,9 +1,9 @@
 {
   "name": "Mesh Drive",
   "shortName": "meshdrive",
-  "version": "2.4.2-test",
+  "version": "2.4.3-test",
   "author": "Marcelo Henrique da Silva / Microsoft Copilot",
-  "description": "Mesh Drive stabilization build: quiet logging, single handler registration guard, unified /drive, /carddav and anonymous access support.",
+  "description": "Mesh Drive stabilization build with personal files at /drive root, virtual shared folders, /carddav, tenant-isolated shares and anonymous access support.",
   "hasAdminPanel": false,
   "homepage": "https://github.com/marcelo-aplicado/mesh_drive",
   "changelogUrl": "https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/changelog.md",
