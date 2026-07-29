@@ -65,25 +65,39 @@ Depois de alterar o `config.json`, reinicie o MeshCentral.
 
 ## Instalação pela interface do MeshCentral
 
+Use a URL do arquivo `config.json` do repositório do plugin:
+
+```text
+https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/config.json
+```
+
+Passos:
+
 1. Acesse o MeshCentral com um usuário administrador.
 
 2. Abra a área de plugins do MeshCentral.
 
-3. Use a opção de instalação/importação de plugin pela interface.
+3. Use a opção de instalação de plugin por URL.
 
-4. Envie o pacote `.zip` do Mesh Drive.
+4. Cole a URL do `config.json` do repositório:
 
-5. Aguarde o MeshCentral instalar o plugin na pasta de plugins.
+```text
+https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/config.json
+```
 
-6. Reinicie o MeshCentral para garantir que as rotas do plugin sejam carregadas.
+5. Confirme a instalação pela interface.
 
-7. Após reiniciar, acesse:
+6. Aguarde o MeshCentral baixar e instalar o plugin.
+
+7. Reinicie o MeshCentral para garantir que as rotas do plugin sejam carregadas.
+
+8. Após reiniciar, acesse:
 
 ```text
 https://SEU_HOST/meshdrive
 ```
 
-8. Confirme se o arquivo `shares.json` foi carregado e ajuste os compartilhamentos conforme necessário.
+9. Confirme se o arquivo `shares.json` foi carregado e ajuste os compartilhamentos conforme necessário.
 
 ## Estrutura esperada do plugin
 
