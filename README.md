@@ -1,6 +1,6 @@
 # Mesh Drive
 
-Versão `2.4.5-test`.
+Versão `2.4.7-test`.
 
 ## Rotas
 
@@ -10,23 +10,22 @@ https://<HOSTNAME>/carddav
 https://<HOSTNAME>/meshdrive
 ```
 
-## Ícones de compartilhamento
+## Comportamento do `/drive`
 
-Cada compartilhamento pode ter o campo:
+A rota `/drive` mostra os arquivos pessoais diretamente na raiz e adiciona os compartilhamentos permitidos como pastas virtuais.
 
-```json
-"icon": "folder"
+Exemplo:
+
+```text
+/drive
+├── Arquivo pessoal.pdf
+├── Pasta pessoal
+└── Contatos
 ```
 
-Valores disponíveis:
-
-- `folder`: pasta padrão;
-- `contact`: ícone de contatos;
-- `public`: ícone público/compartilhado.
-
-A interface `/meshdrive` possui um seletor para escolher o ícone.
-
 ## Configuração padrão
+
+Esta versão remove o compartilhamento `Public` e mantém apenas `Contatos` como padrão.
 
 ```json
 {
@@ -38,13 +37,41 @@ A interface `/meshdrive` possui um seletor para escolher o ícone.
       "writeUsers": ["marcelo"],
       "readGroups": [],
       "writeGroups": ["TI"],
-      "anonymousAccess": "read",
-      "icon": "contact"
+      "anonymousAccess": "read"
     }
   ]
 }
 ```
 
-## Observação sobre Windows
+## Arquivos padrão de tenant incluídos
 
-O plugin tenta criar `desktop.ini` e `.ico` dentro da pasta física do compartilhamento. O Windows Explorer pode depender de cache e comportamento do WebDAV para aplicar o ícone.
+```text
+shares-domain.json
+shares-crsbrands.json
+shares-mhs.json
+shares-fastcopy.json
+```
+
+Se um arquivo `shares-<tenant>.json` já existir no servidor, ele não será sobrescrito automaticamente. Nesse caso, ajuste pela interface `/meshdrive` ou substitua o arquivo manualmente.
+
+## Acesso anônimo
+
+```json
+"anonymousAccess": "read"
+```
+
+Permite leitura anônima no CardDAV/WebDAV do compartilhamento.
+
+## Debug
+
+Logs ficam desativados por padrão. Para ativar:
+
+```json
+{
+  "settings": {
+    "meshDrive": {
+      "debug": true
+    }
+  }
+}
+```

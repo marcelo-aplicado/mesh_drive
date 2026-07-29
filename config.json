@@ -1,9 +1,9 @@
 {
   "name": "Mesh Drive",
   "shortName": "meshdrive",
-  "version": "2.4.5-test",
+  "version": "2.4.7-test",
   "author": "Marcelo Henrique da Silva / Microsoft Copilot",
-  "description": "Mesh Drive root-personal mode with configurable share icons (folder, contact, public), /carddav and anonymous access support.",
+  "description": "Mesh Drive root-personal mode with clean default Contatos share for all tenants, /carddav and anonymous read support.",
   "hasAdminPanel": false,
   "homepage": "https://github.com/marcelo-aplicado/mesh_drive",
   "changelogUrl": "https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/changelog.md",
