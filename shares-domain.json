@@ -6,7 +6,17 @@
       "readUsers": ["*"],
       "writeUsers": [],
       "readGroups": [],
-      "writeGroups": []
+      "writeGroups": [],
+      "anonymousAccess": "read"
+    },
+    {
+      "name": "Contatos",
+      "path": "contacts",
+      "readUsers": ["*"],
+      "writeUsers": [],
+      "readGroups": [],
+      "writeGroups": [],
+      "anonymousAccess": "read"
     }
   ]
 }

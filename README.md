@@ -1,59 +1,47 @@
 # Mesh Drive
 
-Mesh Drive expõe arquivos pessoais e compartilhamentos em uma única rota WebDAV:
+Mesh Drive expõe arquivos em `/drive` e contatos CardDAV em `/carddav`.
+
+## Rotas
 
 ```text
 \\<HOSTNAME>@SSL\drive
-```
-
-## Estrutura no WebDAV
-
-Ao acessar `/drive`, o usuário verá:
-
-```text
-Pessoal
-Public
-TI
-Financeiro
-```
-
-- `Pessoal`: área privada do usuário autenticado.
-- Demais pastas: compartilhamentos permitidos pelo arquivo de configuração do tenant.
-
-## Interface administrativa
-
-```text
+https://<HOSTNAME>/carddav
 https://<HOSTNAME>/meshdrive
 ```
 
-## Configuração por tenant
+## Acesso anônimo
 
-Exemplos:
+A versão `2.4.1-test` adiciona o campo:
 
-```text
-meshcentral-data/plugins/meshdrive/shares-domain.json
-meshcentral-data/plugins/meshdrive/shares-crsbrands.json
+```json
+"anonymousAccess": "none"
 ```
 
-## Modelo de permissões
+Valores:
+
+- `none`: exige usuário MeshCentral.
+- `read`: permite acesso anônimo somente leitura.
+- `write`: permite acesso anônimo com gravação.
+
+Exemplo:
 
 ```json
 {
-  "shares": [
-    {
-      "name": "Public",
-      "path": "public",
-      "readUsers": ["*"],
-      "writeUsers": ["marcelo"],
-      "readGroups": [],
-      "writeGroups": []
-    }
-  ]
+  "name": "Contatos",
+  "path": "contacts",
+  "readUsers": ["*"],
+  "writeUsers": ["marcelo"],
+  "readGroups": [],
+  "writeGroups": [],
+  "anonymousAccess": "read"
 }
 ```
 
-- `readUsers`: usuários com leitura.
-- `writeUsers`: usuários com gravação. Gravação também implica leitura.
-- `readGroups`: grupos com leitura.
-- `writeGroups`: grupos com gravação. Gravação também implica leitura.
-- Use `*` em `readUsers` para liberar leitura para todos os usuários autenticados.
+No DAVx5, para teste sem usuário MeshCentral, use:
+
+```text
+https://<HOSTNAME>/carddav
+```
+
+> Atenção: `anonymousAccess: "write"` permite gravação sem autenticação. Use apenas em ambientes controlados.

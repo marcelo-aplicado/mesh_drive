@@ -1,12 +1,11 @@
 # Changelog
 
-## 2.3.0-test
-- Criada rota única WebDAV `/drive` para arquivos pessoais e compartilhamentos.
-- A raiz de `/drive` passa a exibir uma pasta virtual `Pessoal` e os compartilhamentos permitidos do tenant.
-- Removida a necessidade de acessar `/shared` para compartilhamentos.
-- A configuração de compartilhamentos continua isolada por tenant: `shares-domain.json`, `shares-crsbrands.json`, etc.
-- Mantido modelo ACL com `readUsers`, `writeUsers`, `readGroups` e `writeGroups`.
-- Mantida interface administrativa `/meshdrive`.
+## 2.4.1-test
+- Adicionada opção de acesso anônimo por compartilhamento na interface `/meshdrive`.
+- Novo campo `anonymousAccess` com opções `none`, `read` e `write`.
+- Acesso anônimo em `read` permite listar/baixar arquivos e ler contatos CardDAV sem usuário MeshCentral.
+- Acesso anônimo em `write` permite também gravar/remover arquivos `.vcf` no CardDAV e escrever no WebDAV do compartilhamento.
+- Mantidas rotas `/drive`, `/carddav` e `/meshdrive`.
 
-## 2.2.3-test
-- Isolamento de compartilhamentos por tenant.
+## 2.4.0-test
+- Adicionada rota experimental CardDAV em `/carddav`.
