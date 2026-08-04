@@ -1,3 +1,8 @@
+####### 1.2.20
+- Corrigido o filtro para pesquisar somente nos valores dos contatos, sem considerar nomes internos de propriedades como title.
+- Quando a pesquisa corresponde exatamente a um setor, como TI ou RH, a lista mostra somente contatos daquele setor.
+- Mantido o filtro geral por nome, cargo, empresa, e-mail, telefone, celular e observações.
+
 ####### 1.2.19
 - O filtro da lista de contatos agora é aplicado a partir de 2 caracteres.
 - Setores curtos como TI, RH, DP, BI e QA podem ser pesquisados.
