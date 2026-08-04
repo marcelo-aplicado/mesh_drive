@@ -1,3 +1,9 @@
+####### 1.2.18
+- A lista de contatos agora exibe somente Primeiro Nome + Sobrenome na coluna Nome.
+- O setor permanece em coluna separada.
+- Ocultados do modal os campos apenas informativos Nome completo gerado e Sobrenome gravado no VCF.
+- Mantida a gravação do setor no FN e no sobrenome estruturado N.
+
 ####### 1.2.17
 - Corrigido o botão Editar com filtro ativo usando o arquivo VCF como identificador estável.
 - Editor de contatos transformado em modal centralizado.
