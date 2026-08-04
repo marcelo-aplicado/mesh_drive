@@ -1,3 +1,8 @@
+####### 1.2.19
+- O filtro da lista de contatos agora é aplicado a partir de 2 caracteres.
+- Setores curtos como TI, RH, DP, BI e QA podem ser pesquisados.
+- O texto de ajuda do campo de pesquisa foi atualizado.
+
 ####### 1.2.18
 - A lista de contatos agora exibe somente Primeiro Nome + Sobrenome na coluna Nome.
 - O setor permanece em coluna separada.
