@@ -1,3 +1,8 @@
+####### 1.2.16
+- Corrigido script da tela de contatos para a lista voltar a carregar.
+- Mantida a gravação do setor no FN e no sobrenome estruturado N.
+- Base preserva o fluxo de listagem /meshdrive/contacts/list.
+
 ####### 1.2.15
 - Ajustado salvamento do setor para melhorar a exibição no Samsung Contacts.
 - O VCF agora grava o setor no nome completo FN e também no sobrenome estruturado N.
