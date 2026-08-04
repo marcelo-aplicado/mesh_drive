@@ -1,3 +1,8 @@
+####### 1.2.17
+- Corrigido o botão Editar com filtro ativo usando o arquivo VCF como identificador estável.
+- Editor de contatos transformado em modal centralizado.
+- Modal fecha pelo botão X, Cancelar, clique fora ou tecla Esc.
+
 ####### 1.2.16
 - Corrigido script da tela de contatos para a lista voltar a carregar.
 - Mantida a gravação do setor no FN e no sobrenome estruturado N.
