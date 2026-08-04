@@ -1,85 +1,9 @@
 {
   "domains": {
-    "domain": {
-      "shares": [
-        {
-          "name": "Contatos",
-          "path": "contatos",
-          "readUsers": [
-            "*"
-          ],
-          "writeUsers": [
-            "marcelo"
-          ],
-          "readGroups": [],
-          "writeGroups": [
-            "TI"
-          ],
-          "anonymousAccess": "read",
-          "carddav": true
-        }
-      ]
-    },
-    "crsbrands": {
-      "shares": [
-        {
-          "name": "Contatos",
-          "path": "contatos",
-          "readUsers": [
-            "*"
-          ],
-          "writeUsers": [
-            "marcelo"
-          ],
-          "readGroups": [],
-          "writeGroups": [
-            "TI"
-          ],
-          "anonymousAccess": "read",
-          "carddav": true
-        }
-      ]
-    },
-    "mhs": {
-      "shares": [
-        {
-          "name": "Contatos",
-          "path": "contatos",
-          "readUsers": [
-            "*"
-          ],
-          "writeUsers": [
-            "marcelo"
-          ],
-          "readGroups": [],
-          "writeGroups": [
-            "TI"
-          ],
-          "anonymousAccess": "read",
-          "carddav": true
-        }
-      ]
-    },
-    "fastcopy": {
-      "shares": [
-        {
-          "name": "Contatos",
-          "path": "contatos",
-          "readUsers": [
-            "*"
-          ],
-          "writeUsers": [
-            "marcelo"
-          ],
-          "readGroups": [],
-          "writeGroups": [
-            "TI"
-          ],
-          "anonymousAccess": "read",
-          "carddav": true
-        }
-      ]
-    }
+    "domain": { "shares": [ { "name": "Contatos", "path": "contatos", "readUsers": ["*"], "writeUsers": ["marcelo"], "readGroups": [], "writeGroups": ["TI"], "anonymousAccess": "read", "carddav": true } ] },
+    "crsbrands": { "shares": [ { "name": "Contatos", "path": "contatos", "readUsers": ["*"], "writeUsers": ["marcelo"], "readGroups": [], "writeGroups": ["TI"], "anonymousAccess": "read", "carddav": true } ] },
+    "mhs": { "shares": [ { "name": "Contatos", "path": "contatos", "readUsers": ["*"], "writeUsers": ["marcelo"], "readGroups": [], "writeGroups": ["TI"], "anonymousAccess": "read", "carddav": true } ] },
+    "fastcopy": { "shares": [ { "name": "Contatos", "path": "contatos", "readUsers": ["*"], "writeUsers": ["marcelo"], "readGroups": [], "writeGroups": ["TI"], "anonymousAccess": "read", "carddav": true } ] }
   },
-  "debug": true
+  "debug": false
 }
