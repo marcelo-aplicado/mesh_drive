@@ -1,7 +1,7 @@
 {
   "name": "Mesh Drive",
   "shortName": "meshdrive",
-  "version": "1.2.14",
+  "version": "1.2.15",
   "author": "Marcelo Henrique da Silva / CRS Brands",
   "description": "WebDAV e CardDAV para MeshCentral com editor de contatos VCF corporativo.",
   "hasAdminPanel": false,
@@ -9,10 +9,7 @@
   "changelogUrl": "https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/changelog.md",
   "configUrl": "https://raw.githubusercontent.com/marcelo-aplicado/mesh_drive/main/config.json",
   "downloadUrl": "https://github.com/marcelo-aplicado/mesh_drive/archive/refs/heads/main.zip",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/marcelo-aplicado/mesh_drive.git"
-  },
+  "repository": { "type": "git", "url": "https://github.com/marcelo-aplicado/mesh_drive.git" },
   "versionHistoryUrl": "https://api.github.com/repos/marcelo-aplicado/mesh_drive/tags",
   "meshCentralCompat": ">=1.2.1"
 }

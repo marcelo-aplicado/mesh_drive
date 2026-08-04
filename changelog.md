@@ -1,39 +1,8 @@
+####### 1.2.15
+- Ajustado salvamento do setor para melhorar a exibição no Samsung Contacts.
+- O VCF agora grava o setor no nome completo FN e também no sobrenome estruturado N.
+- Exemplo gerado: FN:Marcelo Silva (TI) e N:Silva (TI);Marcelo;;;
+- Mantido X-DEPARTMENT e ORG:Empresa;Setor.
+
 ####### 1.2.14
-- Base restaurada a partir da versão 1.2.12 funcional.
-- Adicionado campo Setor sem alterar a lógica de carregamento da lista de contatos.
-- Nome completo gerado como Primeiro Nome + Sobrenome + (Setor).
-- Listagem atualizada para Nome, Setor, Cargo, E-mail, Telefone e Celular.
-
-###### 1.2.12
-- Corrigido warning DEP0169 removendo uso de require('url').parse() na rota de contatos.
-- Substituído por WHATWG URL API mantendo o mesmo comportamento de leitura do parâmetro book.
-
-##### 1.2.11
-- Adicionado botão Contatos na barra do Mesh Drive.
-- Adicionada tela /meshdrive/contacts para listar, criar, editar e excluir contatos CardDAV em arquivos .vcf.
-- Mantida a base 1.2.10 e o fluxo WebDAV/CardDAV existente.
-
-#### 1.2.10
-- Adicionada flag `carddav` por compartilhamento.
-- Compartilhamentos com `carddav: true` aparecem somente na rota `/carddav`.
-- Compartilhamentos sem `carddav` ou com `carddav: false` aparecem somente na rota `/drive`.
-- Adicionada opção CardDAV na tela administrativa de compartilhamentos.
-- Mantida a versão estável sem emissão de logs no console.
-
-### Final sem logs
-- Removida a emissão de logs do plugin para evitar poluição no console do MeshCentral.
-- Mantida a versão funcional enviada pelo usuário, sem alterar o fluxo WebDAV/CardDAV.
-- `debug` definido como `false` por padrão e `function log(){}` aplicada no `meshdrive.js`.
-
-## Changelog
-
-### 1.2.8-minlogs
-- Substituída a versão de debug detalhado por logs mínimos para reduzir risco de travamento.
-- Debug ativado no próprio plugin, sem exigir alteração no config.json do MeshCentral.
-- Mantidos logs apenas para tenant, autenticação, pasta pessoal e `PROPFIND` da raiz.
-- Mantidas tags completas no `config.json` para instalação pela interface do MeshCentral.
-
-# Changelog
-
-## 1.2.4
-- Configuração centralizada em `shares.json` com todos os domínios no mesmo arquivo.
+- Adicionado campo Setor e nome completo gerado como Primeiro Nome + Sobrenome + (Setor).
