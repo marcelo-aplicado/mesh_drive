@@ -1,16 +1,39 @@
-###### 1.2.13
-- Adicionado campo Setor no editor de contatos CardDAV.
-- Nome completo agora pode ser gerado a partir de Primeiro Nome + Sobrenome + (Setor).
-- A listagem de contatos passa a exibir Nome, Setor, Cargo, E-mail, Telefone e Celular.
-- O setor é salvo no VCF como X-DEPARTMENT e também é preservado na visualização do Mesh Drive.
-- Mantida a correção do warning DEP0169 usando WHATWG URL API.
+####### 1.2.14
+- Base restaurada a partir da versão 1.2.12 funcional.
+- Adicionado campo Setor sem alterar a lógica de carregamento da lista de contatos.
+- Nome completo gerado como Primeiro Nome + Sobrenome + (Setor).
+- Listagem atualizada para Nome, Setor, Cargo, E-mail, Telefone e Celular.
 
 ###### 1.2.12
 - Corrigido warning DEP0169 removendo uso de require('url').parse() na rota de contatos.
+- Substituído por WHATWG URL API mantendo o mesmo comportamento de leitura do parâmetro book.
 
-###### 1.2.11
+##### 1.2.11
 - Adicionado botão Contatos na barra do Mesh Drive.
 - Adicionada tela /meshdrive/contacts para listar, criar, editar e excluir contatos CardDAV em arquivos .vcf.
+- Mantida a base 1.2.10 e o fluxo WebDAV/CardDAV existente.
 
-##### 1.2.10
-- Adicionada flag carddav por compartilhamento.
+#### 1.2.10
+- Adicionada flag `carddav` por compartilhamento.
+- Compartilhamentos com `carddav: true` aparecem somente na rota `/carddav`.
+- Compartilhamentos sem `carddav` ou com `carddav: false` aparecem somente na rota `/drive`.
+- Adicionada opção CardDAV na tela administrativa de compartilhamentos.
+- Mantida a versão estável sem emissão de logs no console.
+
+### Final sem logs
+- Removida a emissão de logs do plugin para evitar poluição no console do MeshCentral.
+- Mantida a versão funcional enviada pelo usuário, sem alterar o fluxo WebDAV/CardDAV.
+- `debug` definido como `false` por padrão e `function log(){}` aplicada no `meshdrive.js`.
+
+## Changelog
+
+### 1.2.8-minlogs
+- Substituída a versão de debug detalhado por logs mínimos para reduzir risco de travamento.
+- Debug ativado no próprio plugin, sem exigir alteração no config.json do MeshCentral.
+- Mantidos logs apenas para tenant, autenticação, pasta pessoal e `PROPFIND` da raiz.
+- Mantidas tags completas no `config.json` para instalação pela interface do MeshCentral.
+
+# Changelog
+
+## 1.2.4
+- Configuração centralizada em `shares.json` com todos os domínios no mesmo arquivo.
