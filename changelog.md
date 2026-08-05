@@ -1,8 +1,8 @@
-####### 1.2.21
+####### 1.2.22
+- Resolução automática do nome amigável de grupos configurados em writeGroups.
+- O plugin resolve os documentos ugrp vinculados ao usuário e compara nome, ID completo e ID final.
 - Administração de contatos liberada para usuários em writeUsers e grupos em writeGroups.
-- /meshdrive continua exclusivo para administradores.
-- Administradores mantêm acesso a todos os catálogos CardDAV do domínio.
-- Permissões de leitura não liberam a tela de administração de contatos.
+- /meshdrive permanece exclusivo para administradores.
 
 ####### 1.2.20
 - Corrigido o filtro para pesquisar somente nos valores dos contatos, sem considerar nomes internos de propriedades como title.

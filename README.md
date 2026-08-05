@@ -165,12 +165,14 @@ Acesse:
 https://SEU_HOST/meshdrive/contacts
 ```
 
-O acesso à tela de contatos segue as permissões do compartilhamento CardDAV:
+O acesso à tela segue as permissões de gravação do compartilhamento CardDAV:
 
-- administradores do MeshCentral podem administrar os catálogos CardDAV;
+- administradores do MeshCentral podem administrar todos os catálogos CardDAV do domínio;
 - usuários informados em writeUsers podem administrar os contatos;
 - integrantes dos grupos informados em writeGroups podem administrar os contatos;
-- permissões somente em readUsers ou readGroups não liberam a administração.
+- o nome amigável do grupo, como TI, é resolvido automaticamente a partir do ID interno do grupo no MeshCentral;
+- também são aceitos o ID completo ugrp/dominio/id e somente o ID final;
+- permissões apenas de leitura não liberam a administração.
 
 A tela permite:
 
