@@ -165,13 +165,6 @@ Acesse:
 https://SEU_HOST/meshdrive/contacts
 ```
 
-A tela de contatos possui dois modos:
-
-- leitura: usuários e grupos em readUsers/readGroups podem listar, pesquisar e visualizar contatos, sem botões de inclusão, edição, salvamento ou exclusão;
-- gravação: usuários e grupos em writeUsers/writeGroups podem criar, editar e excluir contatos;
-- administradores completos possuem gravação em todos os catálogos CardDAV do domínio;
-- nomes de grupos, como TI, são resolvidos automaticamente.
-
 A tela permite:
 
 - selecionar um catálogo CardDAV;
@@ -235,6 +228,4 @@ Para atualizar o plugin:
 - Restrinja gravação aos usuários e grupos necessários.
 - Evite acesso anônimo com gravação.
 - Mantenha cópia de segurança do `shares.json` e dos diretórios de arquivos e contatos.
-- O botão Compartilhamentos e a rota /meshdrive permanecem restritos ao Administrador Completo.
-- Os botões Mesh Drive, Mapear, Compartilhamentos e Contatos são exibidos conforme as permissões efetivas do usuário.
-- A administração de contatos deve ser concedida somente a usuários e grupos confiáveis.
+- As telas administrativas devem permanecer restritas a administradores do MeshCentral.
