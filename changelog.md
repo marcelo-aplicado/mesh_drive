@@ -1,8 +1,8 @@
-####### 1.2.22
-- Resolução automática do nome amigável de grupos configurados em writeGroups.
-- O plugin resolve os documentos ugrp vinculados ao usuário e compara nome, ID completo e ID final.
-- Administração de contatos liberada para usuários em writeUsers e grupos em writeGroups.
-- /meshdrive permanece exclusivo para administradores.
+####### 1.2.23
+- Corrigida a validação de administrador do MeshCentral.
+- /meshdrive agora exige siteadmin exatamente 0xFFFFFFFF (Administrador Completo).
+- Permissões parciais como Arquivos do Servidor não concedem mais administração do plugin.
+- Mantidas as permissões de contatos por writeUsers/writeGroups e resolução automática de grupos da 1.2.22.
 
 ####### 1.2.20
 - Corrigido o filtro para pesquisar somente nos valores dos contatos, sem considerar nomes internos de propriedades como title.
