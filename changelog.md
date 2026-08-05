@@ -1,3 +1,10 @@
+####### 1.2.25
+- Telefones e celulares são normalizados automaticamente no formato internacional brasileiro +55.
+- Aceita números com máscara, código do país, zero inicial e código de operadora, incluindo Vivo 15.
+- Validação de DDD + 8 dígitos para telefone fixo e DDD + 9 dígitos para celular.
+- Campos vazios continuam permitidos.
+- Mantida integralmente a base estável 1.2.24.
+
 ####### 1.2.24
 - readUsers e readGroups agora podem abrir e consultar os catálogos CardDAV em modo somente leitura.
 - No modo leitura, Novo contato, Salvar e Excluir ficam ocultos e o modal usa campos somente leitura.

@@ -17,6 +17,7 @@ O **Mesh Drive** é um plugin para o MeshCentral que adiciona acesso a arquivos 
 - Filtro exato por setor, incluindo siglas curtas como `TI`, `RH`, `DP`, `BI` e `QA`.
 - Editor de contatos em janela modal.
 - Nome corporativo gravado no VCF com o setor no nome completo e no sobrenome estruturado, melhorando a exibição em aplicativos de contatos.
+- Telefones brasileiros normalizados automaticamente no padrão internacional `+55`, com validação separada para fixo e celular.
 
 ## Rotas
 
@@ -209,6 +210,20 @@ X-DEPARTMENT:TI
 ```
 
 Na lista do Mesh Drive, o nome é mostrado sem o setor, pois o setor já possui uma coluna separada.
+
+### Formato dos telefones
+
+Ao salvar um contato, o plugin remove espaços, parênteses, hífens, código do país já informado e código de operadora, e grava o número no padrão internacional brasileiro.
+
+Exemplos:
+
+```text
+(11) 4567-8900   -> +551145678900
+(11) 99876-5432  -> +5511998765432
+01511998765432   -> +5511998765432
+```
+
+Telefone fixo exige DDD mais 8 dígitos. Celular exige DDD mais 9 dígitos e deve começar com 9 após o DDD.
 
 ## Estrutura do plugin
 
