@@ -1,8 +1,8 @@
-####### 1.2.25
-- Telefones e celulares são normalizados automaticamente no formato internacional brasileiro +55.
-- Aceita números com máscara, código do país, zero inicial e código de operadora, incluindo Vivo 15.
-- Validação de DDD + 8 dígitos para telefone fixo e DDD + 9 dígitos para celular.
-- Campos vazios continuam permitidos.
+####### 1.2.26
+- Mantida a normalização de telefones no padrão internacional +55.
+- Telefones fixos exibidos como (11) 4567-8900.
+- Celulares exibidos como (11) 9.8066-3877.
+- A máscara é aplicada na lista, no modal e durante a digitação.
 - Mantida integralmente a base estável 1.2.24.
 
 ####### 1.2.24
