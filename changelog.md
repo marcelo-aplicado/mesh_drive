@@ -1,3 +1,9 @@
+####### 1.2.24
+- readUsers e readGroups agora podem abrir e consultar os catálogos CardDAV em modo somente leitura.
+- No modo leitura, Novo contato, Salvar e Excluir ficam ocultos e o modal usa campos somente leitura.
+- Gravação e exclusão continuam protegidas no backend e exigem writeUsers, writeGroups ou Administrador Completo.
+- Nenhuma alteração foi feita nos botões do MeshCentral, WebDAV, CardDAV ou autenticação.
+
 ####### 1.2.23
 - Corrigida a validação de administrador do MeshCentral.
 - /meshdrive agora exige siteadmin exatamente 0xFFFFFFFF (Administrador Completo).
