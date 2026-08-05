@@ -1,7 +1,8 @@
-####### 1.2.25
-- Corrigido popup de autenticação após login nativo: capacidades usam somente a sessão web e não enviam desafio Basic.
-- Corrigida duplicação dos botões com trava global durante a consulta assíncrona.
-- Mantidos botões dinâmicos, modo somente leitura, resolução de grupos e validação de Administrador Completo.
+####### 1.2.23
+- Corrigida a validação de administrador do MeshCentral.
+- /meshdrive agora exige siteadmin exatamente 0xFFFFFFFF (Administrador Completo).
+- Permissões parciais como Arquivos do Servidor não concedem mais administração do plugin.
+- Mantidas as permissões de contatos por writeUsers/writeGroups e resolução automática de grupos da 1.2.22.
 
 ####### 1.2.20
 - Corrigido o filtro para pesquisar somente nos valores dos contatos, sem considerar nomes internos de propriedades como title.

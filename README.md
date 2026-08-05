@@ -165,6 +165,15 @@ Acesse:
 https://SEU_HOST/meshdrive/contacts
 ```
 
+O acesso à tela segue as permissões de gravação do compartilhamento CardDAV:
+
+- Administrador Completo do MeshCentral pode administrar todos os catálogos CardDAV do domínio;
+- usuários informados em writeUsers podem administrar os contatos autorizados;
+- integrantes dos grupos informados em writeGroups podem administrar os contatos autorizados;
+- nomes amigáveis de grupos, como TI, são resolvidos automaticamente;
+- permissões parciais do servidor, como Arquivos do Servidor, não equivalem a Administrador Completo;
+- permissões apenas de leitura não liberam a administração.
+
 A tela permite:
 
 - selecionar um catálogo CardDAV;
@@ -228,4 +237,6 @@ Para atualizar o plugin:
 - Restrinja gravação aos usuários e grupos necessários.
 - Evite acesso anônimo com gravação.
 - Mantenha cópia de segurança do `shares.json` e dos diretórios de arquivos e contatos.
-- As telas administrativas devem permanecer restritas a administradores do MeshCentral.
+- A configuração de compartilhamentos permanece restrita ao Administrador Completo do MeshCentral.
+- Permissões parciais do servidor não concedem acesso administrativo ao plugin.
+- A administração de contatos deve ser concedida somente por writeUsers, writeGroups ou Administrador Completo.
