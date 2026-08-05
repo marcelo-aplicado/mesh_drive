@@ -240,8 +240,3 @@ Para atualizar o plugin:
 - A configuração de compartilhamentos permanece restrita ao Administrador Completo do MeshCentral.
 - Permissões parciais do servidor não concedem acesso administrativo ao plugin.
 - A administração de contatos deve ser concedida somente por writeUsers, writeGroups ou Administrador Completo.
-
-
-### Formato dos telefones
-
-Os números são armazenados no VCF no padrão internacional `+55`. Na lista e no modal, são apresentados com máscara brasileira: `(11) 4567-8900` para fixo e `(11) 9.8066-3877` para celular.

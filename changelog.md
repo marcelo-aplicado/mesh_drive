@@ -1,9 +1,8 @@
-####### 1.2.26
-- Mantida a normalização de telefones no padrão internacional +55.
-- Telefones fixos exibidos como (11) 4567-8900.
-- Celulares exibidos como (11) 9.8066-3877.
-- A máscara é aplicada na lista, no modal e durante a digitação.
-- Mantida integralmente a base estável 1.2.24.
+####### 1.2.27
+- Máscara calculada no backend e enviada como phoneDisplay/mobileDisplay.
+- Lista exibe celular como (11) 9.8066-3877 e fixo como (11) 4567-8900.
+- Indicador v1.2.27 no título para confirmar a versão carregada.
+- VCF permanece normalizado em +55.
 
 ####### 1.2.24
 - readUsers e readGroups agora podem abrir e consultar os catálogos CardDAV em modo somente leitura.
