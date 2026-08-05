@@ -1,3 +1,9 @@
+####### 1.2.21
+- Administração de contatos liberada para usuários em writeUsers e grupos em writeGroups.
+- /meshdrive continua exclusivo para administradores.
+- Administradores mantêm acesso a todos os catálogos CardDAV do domínio.
+- Permissões de leitura não liberam a tela de administração de contatos.
+
 ####### 1.2.20
 - Corrigido o filtro para pesquisar somente nos valores dos contatos, sem considerar nomes internos de propriedades como title.
 - Quando a pesquisa corresponde exatamente a um setor, como TI ou RH, a lista mostra somente contatos daquele setor.
