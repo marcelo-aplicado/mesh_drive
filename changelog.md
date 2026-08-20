@@ -1,3 +1,11 @@
+####### 1.2.28
+- Compatibilidade WebDAV aprimorada com o Explorador de Arquivos do Windows.
+- Implementado PROPPATCH com resposta 207 Multi-Status.
+- LOCK agora retorna lockdiscovery XML e token compatível.
+- PUT usa arquivo temporário e substituição atômica para evitar arquivos parciais de 0 bytes.
+- MOVE/COPY respeitam Destination e Overwrite.
+- Mantida integralmente a base estável 1.2.27 para CardDAV, contatos e permissões.
+
 ####### 1.2.27
 - Máscara calculada no backend e enviada como phoneDisplay/mobileDisplay.
 - Lista exibe celular como (11) 9.8066-3877 e fixo como (11) 4567-8900.

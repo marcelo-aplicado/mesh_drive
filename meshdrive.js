@@ -103,7 +103,64 @@ module.exports.meshdrive = function (parent) {
   function sendOptions(res,card){ res.writeHead(200,card?{'DAV':'1, 2, 3, addressbook','Allow':'OPTIONS, PROPFIND, REPORT, GET, PUT, DELETE'}:{'DAV':'1, 2','Allow':'OPTIONS, PROPFIND, GET, HEAD, PUT, DELETE, MKCOL, MOVE, COPY, LOCK, UNLOCK, PROPPATCH','MS-Author-Via':'DAV'}); res.end(); }
   function copyRec(s,d){ const st=fs.statSync(s); if(st.isDirectory()){mkdir(d);fs.readdirSync(s).forEach(f=>copyRec(path.join(s,f),path.join(d,f)));}else fs.copyFileSync(s,d); }
   function rootPropfind(req,res,u){ const depth=req.headers.depth||'1'; let out=''; const root=u.anonymous?null:userRoot(u); if(root&&fs.existsSync(root)){ out+=propReal(root,'/'); if(depth!=='0'){fs.readdirSync(root).forEach(n=>{out+=propReal(path.join(root,n),'/'+n);}); allowedDriveShares(u).forEach(s=>{out+=propVirtual(s.name,'/'+s.name);});} }else{ out+=propVirtual('drive','/'); if(depth!=='0')allowedDriveShares(u).forEach(s=>{out+=propVirtual(s.name,'/'+s.name);}); } return xml(res,207,'<?xml version="1.0" encoding="utf-8"?><D:multistatus xmlns:D="DAV:">'+out+'</D:multistatus>'); }
-  function handleRealDav(req,res,target,u){ switch((req.method||'GET').toUpperCase()){ case 'PROPFIND':{ if(!fs.existsSync(target.path)){res.writeHead(404);return res.end();} let out=propReal(target.path,target.rel); const depth=req.headers.depth||'1',st=fs.statSync(target.path); if(depth!=='0'&&st.isDirectory())fs.readdirSync(target.path).forEach(n=>{out+=propReal(path.join(target.path,n),path.posix.join(target.rel,n));}); return xml(res,207,'<?xml version="1.0" encoding="utf-8"?><D:multistatus xmlns:D="DAV:">'+out+'</D:multistatus>'); } case 'GET': case 'HEAD':{ if(!fs.existsSync(target.path)){res.writeHead(404);return res.end();} const st=fs.statSync(target.path); if(st.isDirectory()){res.writeHead(403);return res.end();} res.writeHead(200,{'Content-Length':st.size}); if(req.method.toUpperCase()==='HEAD')res.end(); else fs.createReadStream(target.path).pipe(res); break; } case 'PUT': if(target.readOnly){res.writeHead(405);return res.end();} mkdir(path.dirname(target.path)); req.pipe(fs.createWriteStream(target.path)).on('finish',()=>{res.writeHead(201);res.end();}); break; case 'MKCOL': if(target.readOnly){res.writeHead(405);return res.end();} if(fs.existsSync(target.path)){res.writeHead(405);return res.end();} mkdir(target.path); res.writeHead(201); res.end(); break; case 'DELETE': if(target.readOnly){res.writeHead(405);return res.end();} if(!fs.existsSync(target.path)){res.writeHead(404);return res.end();} fs.rmSync(target.path,{recursive:true,force:true}); res.writeHead(204); res.end(); break; case 'MOVE': case 'COPY':{ if(target.readOnly){res.writeHead(405);return res.end();} const dh=req.headers.destination; if(!dh){res.writeHead(400);return res.end();} const du=new URL(dh,'https://'+(req.headers.host||'localhost')+cfg.route); let dr=decodeURIComponent(du.pathname); if(dr.indexOf(cfg.route)===0)dr=dr.substring(cfg.route.length)||'/'; const dest=driveTarget(u,dr); if(!dest||dest.kind==='root'||dest.readOnly||!dest.path){res.writeHead(403);return res.end();} mkdir(path.dirname(dest.path)); if(req.method.toUpperCase()==='MOVE')fs.renameSync(target.path,dest.path); else copyRec(target.path,dest.path); res.writeHead(201); res.end(); break; } case 'LOCK': res.writeHead(200,{'Lock-Token':'<opaquelocktoken:'+crypto.randomUUID()+'>'});res.end();break; case 'UNLOCK': res.writeHead(204);res.end();break; default: res.writeHead(405);res.end(); } }
+  function davLockXml(token,owner){ return '<?xml version="1.0" encoding="utf-8"?><D:prop xmlns:D="DAV:"><D:lockdiscovery><D:activelock><D:locktype><D:write/></D:locktype><D:lockscope><D:exclusive/></D:lockscope><D:depth>infinity</D:depth><D:owner>'+x(owner||'Mesh Drive')+'</D:owner><D:timeout>Second-3600</D:timeout><D:locktoken><D:href>'+x(token)+'</D:href></D:locktoken></D:activelock></D:lockdiscovery></D:prop>'; }
+  async function handleRealDav(req,res,target,u){
+    const method=(req.method||'GET').toUpperCase();
+    switch(method){
+      case 'PROPFIND':{
+        if(!fs.existsSync(target.path)){res.writeHead(404);return res.end();}
+        let out=propReal(target.path,target.rel),depth=req.headers.depth||'1',st=fs.statSync(target.path);
+        if(depth!=='0'&&st.isDirectory())fs.readdirSync(target.path).forEach(n=>{out+=propReal(path.join(target.path,n),path.posix.join(target.rel,n));});
+        return xml(res,207,'<?xml version="1.0" encoding="utf-8"?><D:multistatus xmlns:D="DAV:">'+out+'</D:multistatus>');
+      }
+      case 'PROPPATCH':{
+        if(!fs.existsSync(target.path)){res.writeHead(404);return res.end();}
+        await readBody(req);
+        const href=x(hrefFor(cfg.route,target.rel));
+        return xml(res,207,'<?xml version="1.0" encoding="utf-8"?><D:multistatus xmlns:D="DAV:"><D:response><D:href>'+href+'</D:href><D:propstat><D:prop/><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response></D:multistatus>');
+      }
+      case 'GET': case 'HEAD':{
+        if(!fs.existsSync(target.path)){res.writeHead(404);return res.end();}
+        const st=fs.statSync(target.path);if(st.isDirectory()){res.writeHead(403);return res.end();}
+        res.writeHead(200,{'Content-Length':st.size,'Accept-Ranges':'bytes'});if(method==='HEAD')res.end();else fs.createReadStream(target.path).pipe(res);return;
+      }
+      case 'PUT':{
+        if(target.readOnly){res.writeHead(405);return res.end();}
+        const existed=fs.existsSync(target.path);mkdir(path.dirname(target.path));
+        const tmp=target.path+'.meshdrive-upload-'+crypto.randomUUID();
+        const ws=fs.createWriteStream(tmp);
+        let completed=false;
+        const fail=()=>{if(completed)return;completed=true;try{ws.destroy();}catch(e){}try{if(fs.existsSync(tmp))fs.rmSync(tmp,{force:true});}catch(e){}try{res.writeHead(500);res.end();}catch(e){}};
+        req.on('aborted',fail);req.on('error',fail);ws.on('error',fail);
+        ws.on('finish',()=>{if(completed)return;completed=true;try{fs.renameSync(tmp,target.path);res.writeHead(existed?204:201,{'ETag':'"'+fs.statSync(target.path).size+'-'+Number(fs.statSync(target.path).mtimeMs).toString(16)+'"'});res.end();}catch(e){fail();}});
+        req.pipe(ws);return;
+      }
+      case 'MKCOL':
+        if(target.readOnly){res.writeHead(405);return res.end();}if(fs.existsSync(target.path)){res.writeHead(405);return res.end();}mkdir(target.path);res.writeHead(201);return res.end();
+      case 'DELETE':
+        if(target.readOnly){res.writeHead(405);return res.end();}if(!fs.existsSync(target.path)){res.writeHead(404);return res.end();}fs.rmSync(target.path,{recursive:true,force:true});res.writeHead(204);return res.end();
+      case 'MOVE': case 'COPY':{
+        if(target.readOnly){res.writeHead(405);return res.end();}if(!fs.existsSync(target.path)){res.writeHead(404);return res.end();}
+        const dh=req.headers.destination;if(!dh){res.writeHead(400);return res.end();}
+        const du=new URL(dh,'https://'+(req.headers.host||'localhost')+cfg.route);let dr=decodeURIComponent(du.pathname);
+        if(dr.indexOf(cfg.route)===0)dr=dr.substring(cfg.route.length)||'/';
+        const dest=driveTarget(u,dr);if(!dest||dest.kind==='root'||dest.readOnly||!dest.path){res.writeHead(403);return res.end();}
+        const overwrite=String(req.headers.overwrite||'T').toUpperCase()!=='F',destExists=fs.existsSync(dest.path);
+        if(destExists&&!overwrite){res.writeHead(412);return res.end();}
+        mkdir(path.dirname(dest.path));if(destExists)fs.rmSync(dest.path,{recursive:true,force:true});
+        if(method==='MOVE')fs.renameSync(target.path,dest.path);else copyRec(target.path,dest.path);
+        res.writeHead(destExists?204:201);return res.end();
+      }
+      case 'LOCK':{
+        if(target.readOnly){res.writeHead(405);return res.end();}
+        const token='opaquelocktoken:'+crypto.randomUUID(),code=fs.existsSync(target.path)?200:201;
+        res.writeHead(code,{'Content-Type':'application/xml; charset=utf-8','Lock-Token':'<'+token+'>','Timeout':'Second-3600','DAV':'1, 2'});
+        return res.end(davLockXml(token,'Mesh Drive'));
+      }
+      case 'UNLOCK':res.writeHead(204);return res.end();
+      default:res.writeHead(405,{'Allow':'OPTIONS, PROPFIND, PROPPATCH, GET, HEAD, PUT, DELETE, MKCOL, MOVE, COPY, LOCK, UNLOCK'});return res.end();
+    }
+  }
   async function driveDav(req,res){ const method=(req.method||'GET').toUpperCase(); if(method==='OPTIONS')return sendOptions(res,false); const rel=routePath(req,cfg.route),u=await authDrive(req,res,rel); if(!u)return; const target=driveTarget(u,rel); if(!target){res.writeHead(404);return res.end();} try{ if(target.kind==='root'){ if(method==='PROPFIND')return rootPropfind(req,res,u); res.writeHead(403); return res.end(); } return handleRealDav(req,res,target,u); }catch(e){ try{res.writeHead(500);res.end();}catch(ex){} } }
   function cardHref(rel){ let r=rel||'/'; if(r.indexOf('/')!==0)r='/'+r; return cfg.carddavRoute.replace(/\/$/,'')+encodeURI(r).replace(/#/g,'%23'); }
   function cardResp(h,props){ return '<D:response><D:href>'+x(h)+'</D:href><D:propstat><D:prop>'+props+'</D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response>'; }
@@ -150,7 +207,7 @@ init();
   async function adminHandler(req,res){ const pathname=(req.url||'').split('?')[0].replace(/\/$/,''); const contactsRoute=pathname.endsWith('/contacts')||pathname.endsWith('/contacts/list')||pathname.endsWith('/contacts/save')||pathname.endsWith('/contacts/delete'); const u=await auth(req,res,!contactsRoute,false); if(!u)return; const ctx=u.domainContext; if(pathname.endsWith('/contacts/list')){ const urlObj=new URL(req.url,'https://'+(req.headers.host||'localhost')); const qs=Object.fromEntries(urlObj.searchParams.entries()); const shares=await cardDavSharesForUser(u); if(!qs.book){res.writeHead(200,{'Content-Type':'application/json;charset=utf-8'});return res.end(JSON.stringify({books:shares.map(s=>({name:s.name,permission:s.permission}))},null,2));} const share=await findCardDavShareForUser(u,qs.book); if(!share){res.writeHead(403);return res.end('Sem permissão para este catálogo');} const root=shareRoot(u,share); const contacts=vcfFiles(root).map(f=>{const c=parseVCard(fs.readFileSync(path.join(root,f),'utf8'),f);c.phoneDisplay=formatBrazilPhoneDisplay(c.phone);c.mobileDisplay=formatBrazilPhoneDisplay(c.mobile);return c;}); res.writeHead(200,{'Content-Type':'application/json;charset=utf-8'}); return res.end(JSON.stringify({contacts},null,2)); } if(pathname.endsWith('/contacts/save')){ try{ const body=JSON.parse(await readBody(req)); const share=await findWritableCardDavShareByName(u,body.book); if(!share){res.writeHead(403);return res.end('Sem permissão de gravação neste catálogo');} const root=shareRoot(u,share); const c=body.contact||{}; const file=safePath(c.file||contactFileName(c)); if(!file.toLowerCase().endsWith('.vcf')){res.writeHead(415);return res.end('Arquivo inválido');} fs.writeFileSync(path.join(root,file),buildVCard(c)); res.writeHead(200,{'Content-Type':'application/json;charset=utf-8'}); return res.end(JSON.stringify({ok:true,file},null,2)); }catch(e){res.writeHead(400,{'Content-Type':'text/plain;charset=utf-8'});return res.end(String(e.message||e));} } if(pathname.endsWith('/contacts/delete')){ try{ const body=JSON.parse(await readBody(req)); const share=await findWritableCardDavShareByName(u,body.book); if(!share){res.writeHead(403);return res.end('Sem permissão de gravação neste catálogo');} const root=shareRoot(u,share),file=safePath(body.file||''); const full=path.resolve(path.join(root,file)); if(full.indexOf(root+path.sep)!==0){res.writeHead(403);return res.end();} if(fs.existsSync(full))fs.rmSync(full,{force:true}); res.writeHead(200,{'Content-Type':'application/json;charset=utf-8'}); return res.end(JSON.stringify({ok:true},null,2)); }catch(e){res.writeHead(400,{'Content-Type':'text/plain;charset=utf-8'});return res.end(String(e.message||e));} } if(pathname.endsWith('/contacts')){res.writeHead(200,{'Content-Type':'text/html;charset=utf-8'});return res.end(contactsHtml(ctx));} if(pathname.endsWith('/config')){ if((req.method||'GET').toUpperCase()==='GET'){res.writeHead(200,{'Content-Type':'application/json;charset=utf-8'});return res.end(JSON.stringify(readSharesConfig(ctx),null,2));} if((req.method||'GET').toUpperCase()==='POST'){try{const saved=writeSharesConfig(ctx,JSON.parse(await readBody(req)));res.writeHead(200,{'Content-Type':'application/json;charset=utf-8'});return res.end(JSON.stringify(saved,null,2));}catch(e){res.writeHead(400,{'Content-Type':'text/plain;charset=utf-8'});return res.end(String(e.message||e));}} } res.writeHead(200,{'Content-Type':'text/html;charset=utf-8'}); res.end(htmlPage(ctx)); }
   function app(){ const c=[obj.meshServer&&obj.meshServer.webserver&&obj.meshServer.webserver.app,obj.meshServer&&obj.meshServer.app,parent&&parent.app,parent&&parent.webserver&&parent.webserver.app]; for(const a of c)if(a&&typeof a.use==='function')return a; return null; }
   obj.hook_setupHttpHandlers=function(){ if(cfg.enabled===false)return; const key='__meshdrive_handlers_registered__'; if(global[key])return; const a=app(); if(!a)return; global[key]=true; mkdir(pluginDir); mkdir(rootDomainForFolder(cfg.meshDomainFolder||'domain')); a.use(cfg.route,(req,res)=>driveDav(req,res)); a.use(cfg.carddavRoute,(req,res)=>carddav(req,res)); a.use(cfg.adminRoute,(req,res)=>adminHandler(req,res)); };
-  obj.server_startup=function(){ log('loaded 1.2.27'); };
+  obj.server_startup=function(){ log('loaded 1.2.28'); };
   obj.copyDetectedAddress=function(){ const host=window.location.hostname||window.location.host||'localhost'; const address='\\\\'+host+'@SSL\\drive'; if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(address).then(()=>alert('Endereço copiado:\n\n'+address),()=>prompt('Copie o endereço:',address)); else prompt('Copie o endereço:',address); };
   obj.copyMapCommand=function(){ const host=window.location.hostname||window.location.host||'localhost'; const command=['$meshHost="'+host.replace(/"/g,'')+'";','$path="\\\\$($meshHost)@SSL\\drive";','foreach($l in "M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"){','if(-not (Get-PSDrive -Name $l -ErrorAction SilentlyContinue)){','net use "$($l):" $path /persistent:yes;','if($LASTEXITCODE -eq 0){explorer "$($l):\\"};','break','}','}'].join(''); if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(command).then(()=>alert('Comando copiado:\n\n'+command),()=>prompt('Copie o comando:',command)); else prompt('Copie o comando:',command); };
   obj.openMeshDriveAdmin=function(){ try{window.open('/meshdrive','_blank','noopener');}catch(e){window.location.href='/meshdrive';} };
