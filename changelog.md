@@ -1,3 +1,8 @@
+####### 1.2.29
+- Corrigidas permissões readGroups e writeGroups nos compartilhamentos WebDAV comuns (CardDAV = Não).
+- Nomes amigáveis de grupos, como TI e RH, agora são resolvidos uma vez durante a autenticação e reutilizados pelo WebDAV e CardDAV.
+- Mantidas permissões por usuário, acesso anônimo e todos os recursos estáveis da 1.2.28.
+
 ####### 1.2.28
 - Compatibilidade WebDAV aprimorada com o Explorador de Arquivos do Windows.
 - Implementado PROPPATCH com resposta 207 Multi-Status.

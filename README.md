@@ -240,3 +240,8 @@ Para atualizar o plugin:
 - A configuração de compartilhamentos permanece restrita ao Administrador Completo do MeshCentral.
 - Permissões parciais do servidor não concedem acesso administrativo ao plugin.
 - A administração de contatos deve ser concedida somente por writeUsers, writeGroups ou Administrador Completo.
+
+
+### Resolução de grupos
+
+As permissões `readGroups` e `writeGroups` aceitam nomes amigáveis de grupos do MeshCentral, como `TI` e `RH`, tanto em compartilhamentos WebDAV quanto CardDAV.
