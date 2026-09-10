@@ -1,7 +1,8 @@
-## 1.2.30
-- Adicionado o botão Mesh Drive Sync na tela Arquivos.
+####### 1.2.31
+- Corrigida a inserção do botão Mesh Drive Sync na tela Meus Arquivos.
+- O botão aparece entre Mapear e Compartilhamentos.
 - O botão abre a página do MeshDriveSync.exe no GitHub em nova aba.
-- Mantidos todos os recursos da base estável 1.2.29.
+- Mantida integralmente a base estável 1.2.29.
 
 ####### 1.2.29
 - Corrigidas permissões readGroups e writeGroups nos compartilhamentos WebDAV comuns (CardDAV = Não).

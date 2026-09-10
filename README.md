@@ -68,7 +68,7 @@ Após alterar o `config.json`, reinicie o serviço ou container do MeshCentral.
 5. Confirme a instalação pela interface.
 6. Reinicie o serviço ou container do MeshCentral para carregar as rotas do plugin.
 7. Entre novamente no MeshCentral e abra **Meus Arquivos**.
-8. Verifique se aparecem os botões **Mesh Drive**, **Mapear**, **Compartilhamentos** e **Contatos**.
+8. Verifique se aparecem os botões **Mesh Drive**, **Mapear**, **Mesh Drive Sync**, **Compartilhamentos** e **Contatos**.
 
 ## 3. Configurar compartilhamentos
 
@@ -247,6 +247,6 @@ Para atualizar o plugin:
 As permissões `readGroups` e `writeGroups` aceitam nomes amigáveis de grupos do MeshCentral, como `TI` e `RH`, tanto em compartilhamentos WebDAV quanto CardDAV.
 
 
-## Mesh Drive Sync na tela Arquivos
+### Botão Mesh Drive Sync
 
-O botão **Mesh Drive Sync** abre a página do executável no repositório do aplicativo no GitHub.
+Na tela **Meus Arquivos**, o botão **Mesh Drive Sync** abre em nova aba a página do executável no GitHub.
