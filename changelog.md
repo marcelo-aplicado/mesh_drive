@@ -1,3 +1,8 @@
+## 1.2.30
+- Adicionado o botão Mesh Drive Sync na tela Arquivos.
+- O botão abre a página do MeshDriveSync.exe no GitHub em nova aba.
+- Mantidos todos os recursos da base estável 1.2.29.
+
 ####### 1.2.29
 - Corrigidas permissões readGroups e writeGroups nos compartilhamentos WebDAV comuns (CardDAV = Não).
 - Nomes amigáveis de grupos, como TI e RH, agora são resolvidos uma vez durante a autenticação e reutilizados pelo WebDAV e CardDAV.

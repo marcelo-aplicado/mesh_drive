@@ -245,3 +245,8 @@ Para atualizar o plugin:
 ### Resolução de grupos
 
 As permissões `readGroups` e `writeGroups` aceitam nomes amigáveis de grupos do MeshCentral, como `TI` e `RH`, tanto em compartilhamentos WebDAV quanto CardDAV.
+
+
+## Mesh Drive Sync na tela Arquivos
+
+O botão **Mesh Drive Sync** abre a página do executável no repositório do aplicativo no GitHub.
