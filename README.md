@@ -177,11 +177,13 @@ O acesso à tela segue as permissões de gravação do compartilhamento CardDAV:
 A tela permite:
 
 - selecionar um catálogo CardDAV;
-- pesquisar contatos;
+- pesquisar contatos por texto ou telefone normalizado;
 - criar contatos;
 - editar contatos em janela modal;
 - excluir contatos;
-- filtrar por nome, setor, cargo, empresa, e-mail, telefone, celular e observações.
+- filtrar por nome, setor, cargo, empresa, e-mail, telefone, celular e observações;
+- ordenar a listagem alfabeticamente por nome;
+- exibir a empresa na listagem principal.
 
 Quando o texto pesquisado corresponde exatamente a um setor, como `TI`, são exibidos somente os contatos daquele setor.
 

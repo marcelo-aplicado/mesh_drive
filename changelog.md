@@ -1,3 +1,9 @@
+####### 1.2.32
+- Lista principal de contatos ordenada alfabeticamente pelo nome, usando comparação pt-BR sem diferenciar acentos e maiúsculas.
+- Campo Empresa adicionado à listagem principal.
+- Pesquisa por telefone e celular normalizada para comparar apenas dígitos, aceitando formatos com ou sem +55, DDD, espaços, pontos, parênteses e hífen.
+- Mantidos filtro exato por setor, permissões, CardDAV, WebDAV e demais recursos estáveis da 1.2.31.
+
 ####### 1.2.31
 - Corrigida a inserção do botão Mesh Drive Sync na tela Meus Arquivos.
 - O botão aparece entre Mapear e Compartilhamentos.
