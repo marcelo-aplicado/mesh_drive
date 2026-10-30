@@ -1,7 +1,7 @@
 {
   "domains": {
     "domain": { "shares": [ { "name": "Contatos", "path": "contatos", "readUsers": ["*"], "writeUsers": ["marcelo"], "readGroups": [], "writeGroups": ["TI"], "anonymousAccess": "read", "carddav": true } ] },
-    "crsbrands": { "shares": [ { "name": "Contatos", "path": "contatos", "readUsers": ["*"], "writeUsers": ["marcelo"], "readGroups": [], "writeGroups": ["TI"], "anonymousAccess": "read", "carddav": true } ] },
+    "crsbrands": { "shares": [ { "name": "Contatos", "path": "contatos", "readUsers": ["*"], "writeUsers": ["marcelo"], "readGroups": [], "writeGroups": ["TI"], "anonymousAccess": "read", "carddav": true }, {"name": "KeePassXC", "path": "KeePassXC", "readUsers": [], "writeUsers": ["marcelo"], "readGroups": ["TI"], "writeGroups": [], "anonymousAccess": "none", "carddav": false } ] },
     "mhs": { "shares": [ { "name": "Contatos", "path": "contatos", "readUsers": ["*"], "writeUsers": ["marcelo"], "readGroups": [], "writeGroups": ["TI"], "anonymousAccess": "read", "carddav": true } ] },
     "fastcopy": { "shares": [ { "name": "Contatos", "path": "contatos", "readUsers": ["*"], "writeUsers": ["marcelo"], "readGroups": [], "writeGroups": ["TI"], "anonymousAccess": "read", "carddav": true } ] }
   },
